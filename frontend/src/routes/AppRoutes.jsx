@@ -7,6 +7,7 @@ import MyIdentity from "../pages/identity/MyIdentity";
 import MyAssets from "../pages/assets/MyAssets";
 import AssetDetails from "../pages/assets/AssetDetails";
 import MintAsset from "../pages/assets/MintAsset";
+import AccessManagement from "../pages/access/AccessManagement";
 
 function ProtectedRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
@@ -57,6 +58,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <MintAsset />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/access"
+        element={
+          <ProtectedRoute>
+            <AccessManagement />
           </ProtectedRoute>
         }
       />
