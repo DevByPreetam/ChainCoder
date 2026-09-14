@@ -8,6 +8,7 @@ import MyAssets from "../pages/assets/MyAssets";
 import AssetDetails from "../pages/assets/AssetDetails";
 import MintAsset from "../pages/assets/MintAsset";
 import AccessManagement from "../pages/access/AccessManagement";
+import AccessRequests from "../pages/access/AccessRequests";
 
 function ProtectedRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
@@ -66,6 +67,30 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <AccessManagement />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/access-requests"
+        element={
+          <ProtectedRoute>
+            <AccessRequests />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/access/requests"
+        element={
+          <ProtectedRoute>
+            <AccessRequests />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/approvals"
+        element={
+          <ProtectedRoute>
+            <AccessRequests />
           </ProtectedRoute>
         }
       />

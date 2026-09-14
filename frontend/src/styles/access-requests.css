@@ -1,0 +1,258 @@
+/* ===================================
+   Access Requests & Approvals Workflow — Styles
+   =================================== */
+
+.request-workflow-diagram {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: #080b12;
+  border: 1px solid #1c2636;
+  border-radius: 12px;
+  margin-bottom: 24px;
+  overflow-x: auto;
+}
+
+.request-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.request-step-circle {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.step-contractor {
+  background: #192330;
+  border: 1px solid #2d3e56;
+  color: #93c5fd;
+}
+
+.step-bel {
+  background: #2b2210;
+  border: 1px solid #4a3a1b;
+  color: #fcd34d;
+}
+
+.step-auditor {
+  background: #1c2636;
+  border: 1px solid #38bdf8;
+  color: #38bdf8;
+}
+
+.step-active {
+  background: #17251e;
+  border: 1px solid #284233;
+  color: #86efac;
+}
+
+.request-step-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.request-step-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #e5e9ef;
+}
+
+.request-step-role {
+  font-size: 10px;
+  color: #748095;
+}
+
+.request-step-arrow {
+  color: #374151;
+  font-size: 18px;
+}
+
+/* ===================================
+   Status Badges
+   =================================== */
+
+.status-badge-pending {
+  background: #2b2210;
+  color: #fbbf24;
+  border: 1px solid #4a3a1b;
+}
+
+.status-badge-bel-approved {
+  background: #11263c;
+  color: #38bdf8;
+  border: 1px solid #1e4976;
+}
+
+.status-badge-active {
+  background: #17251e;
+  color: #86efac;
+  border: 1px solid #284233;
+}
+
+.status-badge-rejected {
+  background: #2b1717;
+  color: #f87171;
+  border: 1px solid #4a2727;
+}
+
+/* ===================================
+   Action Buttons
+   =================================== */
+
+.btn-approve {
+  padding: 8px 14px;
+  background: #17251e;
+  border: 1px solid #284233;
+  border-radius: 7px;
+  color: #86efac;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.btn-approve:hover {
+  background: #1f3328;
+  color: #a7f3d0;
+}
+
+.btn-reject {
+  padding: 8px 14px;
+  background: #2b1717;
+  border: 1px solid #4a2727;
+  border-radius: 7px;
+  color: #f87171;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.btn-reject:hover {
+  background: #3b1d1d;
+  color: #fca5a5;
+}
+
+.btn-auditor-approve {
+  padding: 8px 16px;
+  background: #0c4a6e;
+  border: 1px solid #0284c7;
+  border-radius: 7px;
+  color: #e0f2fe;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.btn-auditor-approve:hover {
+  background: #0369a1;
+}
+
+/* ===================================
+   Filter Pill Switcher
+   =================================== */
+
+.request-filter-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 18px;
+  align-items: center;
+}
+
+.filter-pill {
+  padding: 6px 12px;
+  background: #0f151e;
+  border: 1px solid #252f3e;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #8b98a9;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.filter-pill:hover {
+  color: #ffffff;
+  border-color: #3e4c60;
+}
+
+.filter-pill.active {
+  background: #1e293b;
+  color: #ffffff;
+  border-color: #475569;
+}
+
+/* ===================================
+   Rejection Reason Form in Modal
+   =================================== */
+
+.reject-reason-input {
+  width: 100%;
+  padding: 10px 12px;
+  background: #080b12;
+  border: 1px solid #303a4a;
+  border-radius: 8px;
+  color: #ffffff;
+  font-size: 13px;
+  margin-top: 10px;
+  box-sizing: border-box;
+}
+
+.reject-reason-input:focus {
+  border-color: #64748b;
+  outline: none;
+}
+
+/* ===================================
+   Request Details Modal
+   =================================== */
+
+.request-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.request-detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.request-detail-label {
+  font-size: 11px;
+  color: #748095;
+}
+
+.request-detail-value {
+  font-size: 13px;
+  color: #e5e9ef;
+  font-weight: 500;
+}
+
+@media (max-width: 768px) {
+  .request-workflow-diagram {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .request-step-arrow {
+    display: none;
+  }
+
+  .request-detail-grid {
+    grid-template-columns: 1fr;
+  }
+}
