@@ -97,3 +97,47 @@ export async function downloadAssetDocument(assetId) {
 
   window.URL.revokeObjectURL(url);
 }
+
+export async function mintAsset(assetData) {
+  const response = await fetch(`${API_URL}/assets`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(),
+    },
+    body: JSON.stringify(assetData),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "Unable to mint asset");
+  }
+
+  return data.asset || data.data?.asset || data;
+}
+
+export async function uploadAssetDocument(assetId, file) {
+  const token = getToken();
+  const formData = new FormData();
+  formData.append("document", file);
+
+  const response = await fetch(
+    `${API_URL}/assets/${encodeURIComponent(assetId)}/upload`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    }
+  );
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "Unable to upload document");
+  }
+
+  return data.data || data;
+}

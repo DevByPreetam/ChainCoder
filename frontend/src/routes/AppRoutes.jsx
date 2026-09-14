@@ -6,6 +6,7 @@ import Dashboard from "../pages/dashboard/Dashboard";
 import MyIdentity from "../pages/identity/MyIdentity";
 import MyAssets from "../pages/assets/MyAssets";
 import AssetDetails from "../pages/assets/AssetDetails";
+import MintAsset from "../pages/assets/MintAsset";
 
 function ProtectedRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
@@ -55,7 +56,7 @@ function AppRoutes() {
         path="/assets/mint"
         element={
           <ProtectedRoute>
-            <div className="app-layout"><div className="main-area"><main className="main-content"><h2>Mint Asset</h2><p style={{ color: '#748095' }}>Coming soon.</p></main></div></div>
+            <MintAsset />
           </ProtectedRoute>
         }
       />
