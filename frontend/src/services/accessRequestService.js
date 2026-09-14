@@ -188,3 +188,21 @@ export async function auditorApproveAccessRequest(requestId) {
 
   return data.request || data.data?.request || data;
 }
+
+/**
+ * Auditor fetches all access requests via Auditor route
+ */
+export async function getAuditorAccessRequests() {
+  const response = await fetch(`${API_URL}/auditor/access-requests`, {
+    method: "GET",
+    headers: authHeaders(),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "Unable to fetch auditor access requests");
+  }
+
+  return data.requests || data.data?.requests || [];
+}

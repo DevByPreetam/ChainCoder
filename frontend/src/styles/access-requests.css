@@ -256,3 +256,142 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ===================================
+   Approval Dashboard Summary Stats
+   =================================== */
+
+.approval-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.approval-stat-card {
+  background: #0f151e;
+  border: 1px solid #252f3e;
+  border-radius: 12px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  position: relative;
+  overflow: hidden;
+}
+
+.approval-stat-card.stat-action-needed {
+  border-color: #f59e0b;
+  background: #14161a;
+}
+
+.approval-stat-card.stat-action-needed::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: #f59e0b;
+}
+
+.approval-stat-card.stat-pending {
+  border-left: 3px solid #fbbf24;
+}
+
+.approval-stat-card.stat-bel-approved {
+  border-left: 3px solid #38bdf8;
+}
+
+.approval-stat-card.stat-active {
+  border-left: 3px solid #4ade80;
+}
+
+.approval-stat-card.stat-rejected {
+  border-left: 3px solid #f87171;
+}
+
+.approval-stat-count {
+  font-size: 26px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.approval-stat-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #8b98a9;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.approval-stat-desc {
+  font-size: 11px;
+  color: #5d6a7d;
+}
+
+/* ===================================
+   Workflow Stage Indicators
+   =================================== */
+
+.stage-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.stage-pill-pending {
+  background: #231c0e;
+  color: #fbbf24;
+  border: 1px solid #453617;
+}
+
+.stage-pill-awaiting-auditor {
+  background: #0e2033;
+  color: #38bdf8;
+  border: 1px solid #16426a;
+}
+
+.stage-pill-active {
+  background: #13241b;
+  color: #4ade80;
+  border: 1px solid #1f4730;
+}
+
+.stage-pill-rejected {
+  background: #281414;
+  color: #f87171;
+  border: 1px solid #4f2121;
+}
+
+.stage-pill-urgent {
+  animation: pulse-border 2s infinite;
+}
+
+@keyframes pulse-border {
+  0% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(245, 158, 11, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+  }
+}
+
+@media (max-width: 1200px) {
+  .approval-stats-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .approval-stats-grid {
+    grid-template-columns: 1fr;
+  }
+}

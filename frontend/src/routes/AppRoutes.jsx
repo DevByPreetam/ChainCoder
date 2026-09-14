@@ -9,6 +9,7 @@ import AssetDetails from "../pages/assets/AssetDetails";
 import MintAsset from "../pages/assets/MintAsset";
 import AccessManagement from "../pages/access/AccessManagement";
 import AccessRequests from "../pages/access/AccessRequests";
+import Approvals from "../pages/approvals/Approvals";
 
 function ProtectedRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
@@ -90,7 +91,7 @@ function AppRoutes() {
         path="/approvals"
         element={
           <ProtectedRoute>
-            <AccessRequests />
+            <Approvals />
           </ProtectedRoute>
         }
       />
