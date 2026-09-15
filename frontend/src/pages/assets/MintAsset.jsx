@@ -244,10 +244,10 @@ function MintAsset() {
         <main className="main-content">
           <div className="page-header">
             <div>
-              <h2>Mint Digital Asset</h2>
+              <h2>Mint Digital Asset / Unique Token</h2>
               <p>
-                Issue and register a tamper-proof digital asset on Hyperledger
-                Fabric with IPFS document provenance.
+                Mint a unique, verifiable digital asset token (NFT) on Hyperledger
+                Fabric with immutable ledger provenance and decentralized identity (DID) linkage.
               </p>
             </div>
           </div>
@@ -275,7 +275,7 @@ function MintAsset() {
                     <div className="asset-success-icon">✓</div>
                     <div>
                       <h3 className="asset-success-title">
-                        Asset Minted Successfully
+                        Digital Asset Token Minted Successfully
                       </h3>
                       <p className="asset-success-subtitle">
                         Recorded and committed to Hyperledger Fabric world state
@@ -286,9 +286,26 @@ function MintAsset() {
 
                   <div className="asset-info-grid">
                     <div className="asset-info-item">
-                      <span className="asset-info-label">Asset ID</span>
+                      <span className="asset-info-label">NFT / Token ID</span>
+                      <span className="asset-info-value" style={{ color: "#38bdf8", fontWeight: 700 }}>
+                        {successAsset.tokenId || successAsset.assetId}
+                      </span>
+                    </div>
+
+                    <div className="asset-info-item">
+                      <span className="asset-info-label">Token Standard</span>
                       <span className="asset-info-value">
-                        {successAsset.assetId}
+                        <span style={{
+                          padding: "2px 8px",
+                          borderRadius: "4px",
+                          background: "#1e293b",
+                          color: "#60a5fa",
+                          fontSize: "12px",
+                          fontWeight: 600,
+                          border: "1px solid #2563eb"
+                        }}>
+                          {successAsset.tokenStandard || "CHAINCODER-NFT"}
+                        </span>
                       </span>
                     </div>
 
@@ -310,6 +327,13 @@ function MintAsset() {
                       <span className="asset-info-label">Owner</span>
                       <span className="asset-info-value">
                         {successAsset.owner}
+                      </span>
+                    </div>
+
+                    <div className="asset-info-item">
+                      <span className="asset-info-label">Owner DID</span>
+                      <span className="asset-info-value asset-info-mono" style={{ color: "#38bdf8", fontSize: "12px" }}>
+                        {successAsset.ownerDID || (successAsset.owner && (successAsset.ownerOrganization || user?.organization) ? `did:chaincoder:${successAsset.ownerOrganization || user?.organization}:${successAsset.owner}` : "—")}
                       </span>
                     </div>
 

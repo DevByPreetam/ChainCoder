@@ -108,7 +108,7 @@ Write-Host "--- TEST 3: IPFS ---" -ForegroundColor Yellow
 
 $ipfsApiOk = $false
 try {
-    $ipfsResponse = Invoke-WebRequest -Uri "http://127.0.0.1:5001/api/v0/id" -Method POST -TimeoutSec 5 -ErrorAction Stop
+    $ipfsResponse = Invoke-WebRequest -Uri "http://127.0.0.1:5001/api/v0/id" -Method POST -UserAgent "curl/7.68.0" -UseBasicParsing -TimeoutSec 5 -ErrorAction Stop
     if ($ipfsResponse.StatusCode -eq 200) {
         $ipfsData = $ipfsResponse.Content | ConvertFrom-Json
         Write-Pass "IPFS API (http://127.0.0.1:5001/api/v0)"
@@ -138,7 +138,7 @@ Write-Host "--- TEST 4: Backend Health ---" -ForegroundColor Yellow
 
 $backendRunning = $false
 try {
-    $healthResp = Invoke-WebRequest -Uri "http://localhost:5000/api/health" -Method GET -TimeoutSec 5 -ErrorAction Stop
+    $healthResp = Invoke-WebRequest -Uri "http://localhost:5000/api/health" -Method GET -UseBasicParsing -TimeoutSec 5 -ErrorAction Stop
     if ($healthResp.StatusCode -eq 200) {
         $healthData = $healthResp.Content | ConvertFrom-Json
         if ($healthData.success -eq $true) {
@@ -165,7 +165,7 @@ if (-not $backendRunning) {
     Write-Warn "Blockchain test" "Skipped - backend is not running."
 } else {
     try {
-        $bcResp = Invoke-WebRequest -Uri "http://localhost:5000/api/blockchain/test" -Method GET -TimeoutSec 15 -ErrorAction Stop
+        $bcResp = Invoke-WebRequest -Uri "http://localhost:5000/api/blockchain/test" -Method GET -UseBasicParsing -TimeoutSec 15 -ErrorAction Stop
         if ($bcResp.StatusCode -eq 200) {
             $bcData = $bcResp.Content | ConvertFrom-Json
             if ($bcData.success -eq $true) {

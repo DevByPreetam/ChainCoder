@@ -22,11 +22,14 @@ const { AppError, handleControllerError, sendSuccess, sendError } = require('../
 function publicAssetView(asset) {
     return {
         assetId: asset.assetId,
+        tokenId: asset.tokenId || asset.assetId,
+        tokenStandard: asset.tokenStandard || 'CHAINCODER-NFT',
         name: asset.name,
         assetType: asset.assetType,
         status: asset.status,
         ownerOrganization: asset.ownerOrganization || null,
         owner: asset.owner,
+        ownerDID: asset.ownerDID || (asset.owner && asset.ownerOrganization ? `did:chaincoder:${asset.ownerOrganization}:${asset.owner}` : null),
         documentHash: asset.documentHash || '',
         documentCID: asset.documentCID || '',
         createdAt: asset.createdAt,
@@ -442,10 +445,14 @@ async function publicVerifyAsset(req, res) {
         return sendSuccess(res, {
             asset: {
                 assetId: asset.assetId,
+                tokenId: asset.tokenId || asset.assetId,
+                tokenStandard: asset.tokenStandard || 'CHAINCODER-NFT',
                 name: asset.name,
                 assetType: asset.assetType,
                 status: asset.status,
                 ownerOrganization: asset.ownerOrganization || null,
+                owner: asset.owner,
+                ownerDID: asset.ownerDID || (asset.owner && asset.ownerOrganization ? `did:chaincoder:${asset.ownerOrganization}:${asset.owner}` : null),
                 documentHash: asset.documentHash || '',
                 cid: asset.documentCID || '',
                 createdAt: asset.createdAt,

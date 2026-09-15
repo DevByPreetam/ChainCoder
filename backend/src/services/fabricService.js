@@ -166,6 +166,14 @@ async function getAssetHistory(assetId, organization = 'BEL') {
     return evaluateTransaction(organization, 'GetAssetHistory', assetId);
 }
 
+async function resolveDID(did, organization = 'BEL') {
+    return evaluateTransaction(organization, 'ResolveDID', did);
+}
+
+async function verifyDID(did, organization = 'BEL') {
+    return evaluateTransaction(organization, 'VerifyDID', did);
+}
+
 module.exports = {
     registerIdentity,
     getIdentity,
@@ -177,5 +185,7 @@ module.exports = {
     getAsset,
     transferAsset,
     updateAssetDocument,
-    getAssetHistory
+    getAssetHistory,
+    resolveDID,
+    verifyDID
 };

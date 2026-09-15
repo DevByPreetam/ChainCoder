@@ -160,8 +160,42 @@ async function revokeExistingIdentity(req, res) {
     }
 }
 
+async function getIdentityDID(req, res) {
+    try {
+        const { identityId } = req.params;
+
+        if (!identityId) {
+            return sendError(res, 400, 'identityId is required', 'BAD_REQUEST');
+        }
+
+        assertSafeId(identityId, 'identityId');
+
+        const identity = await getIdentity(identityId);
+
+        if (!canViewIdentity(req.user, identity)) {
+            return sendError(res, 403, 'Access denied', 'FORBIDDEN');
+        }
+
+        const did = identity.did || `did:chaincoder:${identity.organization}:${identity.identityId}`;
+        const cryptographicReference = identity.cryptographicReference || `fabric-ca::${identity.organization}MSP::${identity.identityId}`;
+
+        return sendSuccess(res, {
+            did,
+            identityId: identity.identityId,
+            organization: identity.organization,
+            role: identity.role,
+            status: identity.status,
+            cryptographicReference
+        });
+    } catch (error) {
+        console.error('Get identity DID error:', error);
+        return handleControllerError(res, error, 'Unable to fetch identity DID');
+    }
+}
+
 module.exports = {
     createIdentity,
     fetchIdentity,
-    revokeExistingIdentity
+    revokeExistingIdentity,
+    getIdentityDID
 };

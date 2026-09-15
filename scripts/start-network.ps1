@@ -1,4 +1,4 @@
-﻿# ============================================================
+# ============================================================
 # ChainCoder - Start Fabric Network Script
 # scripts/start-network.ps1
 #
@@ -21,7 +21,10 @@
 #   - Preserves all Docker volumes and ledger data.
 # ============================================================
 
-$ErrorActionPreference = "Stop"
+$ErrorActionPreference = "Continue"
+if (Test-Path Variable:\PSNativeCommandUseErrorActionPreference) {
+    $PSNativeCommandUseErrorActionPreference = $false
+}
 
 # ------------------------------------------------------------
 # 1. Robust Path Calculation

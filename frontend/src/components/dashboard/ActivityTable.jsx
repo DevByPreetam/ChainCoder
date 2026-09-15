@@ -1,38 +1,47 @@
-function ActivityTable() {
-    const activities = [
-      {
-        action: "Identity Registered",
-        resource: "BEL001",
-        status: "SUCCESS",
-        time: "Today, 10:42 AM",
-      },
-      {
-        action: "Asset Minted",
-        resource: "AST-9999",
-        status: "SUCCESS",
-        time: "Today, 09:18 AM",
-      },
-      {
-        action: "Access Granted",
-        resource: "Contractor",
-        status: "SUCCESS",
-        time: "Yesterday, 04:32 PM",
-      },
-    ];
-  
-    return (
-      <div className="dashboard-section">
-  
-        <div className="section-header">
-          <div>
-            <h3>Recent Blockchain Activity</h3>
-            <p>Latest transactions recorded on ChainCoder</p>
-          </div>
-  
-          <button className="view-all-button">
-            View All
-          </button>
+import { useNavigate } from "react-router-dom";
+
+function ActivityTable({ activities = [] }) {
+  const navigate = useNavigate();
+
+  const defaultActivities = [
+    {
+      action: "Identity Registered",
+      resource: "BEL001",
+      status: "SUCCESS",
+      time: "Today, 10:42 AM",
+    },
+    {
+      action: "Asset Minted",
+      resource: "ASSET001",
+      status: "SUCCESS",
+      time: "Today, 09:18 AM",
+    },
+    {
+      action: "Access Granted",
+      resource: "CON001 ➔ ASSET001",
+      status: "SUCCESS",
+      time: "Yesterday, 04:32 PM",
+    },
+  ];
+
+  const displayActivities = activities.length > 0 ? activities : defaultActivities;
+
+  return (
+    <div className="dashboard-section">
+
+      <div className="section-header">
+        <div>
+          <h3>Recent Blockchain Activity</h3>
+          <p>Latest transactions recorded on ChainCoder</p>
         </div>
+
+        <button
+          className="view-all-button"
+          onClick={() => navigate("/audit-history")}
+        >
+          View All
+        </button>
+      </div>
   
         <div className="activity-table-wrapper">
           <table className="activity-table">
@@ -47,7 +56,7 @@ function ActivityTable() {
             </thead>
   
             <tbody>
-              {activities.map((activity, index) => (
+              {displayActivities.map((activity, index) => (
                 <tr key={index}>
                   <td>{activity.action}</td>
                   <td>{activity.resource}</td>

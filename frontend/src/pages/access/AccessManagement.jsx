@@ -111,6 +111,27 @@ function AccessManagement() {
       setSearchError("");
       setCheckedAccess(null);
       const access = await getAccess(idId, astId);
+
+      // Try to enrich created timestamp from on-chain audit history if not present
+      if (access && !access.createdAt && !access.timestamp) {
+        try {
+          const histLogs = await getAccessHistory();
+          if (Array.isArray(histLogs)) {
+            const match = histLogs.find(
+              (h) =>
+                h.resourceId === `${idId}::${astId}` ||
+                h.resourceId === astId ||
+                (h.message && h.message.includes(idId) && h.message.includes(astId))
+            );
+            if (match?.timestamp) {
+              access.createdAt = match.timestamp;
+            }
+          }
+        } catch {
+          // Non-blocking fallback
+        }
+      }
+
       setCheckedAccess(access);
     } catch (err) {
       setSearchError(err.message || "Access record not found or inaccessible.");
@@ -304,7 +325,7 @@ function AccessManagement() {
                       <input
                         type="text"
                         className="access-search-input"
-                        placeholder="Asset ID (e.g. AST-0001)"
+                        placeholder="Asset ID (e.g. ASSET001)"
                         value={searchAssetId}
                         onChange={(e) => setSearchAssetId(e.target.value)}
                         disabled={searching}
@@ -317,6 +338,38 @@ function AccessManagement() {
                         {searching ? "Checking..." : "Check Access"}
                       </button>
                     </form>
+
+                    <div style={{ marginTop: "12px", display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                      <span style={{ fontSize: "11px", color: "#64748b", fontWeight: 500 }}>Active Grants on Ledger:</span>
+                      {[
+                        { id: "BEL003", ast: "ASSET001" },
+                        { id: "CON001", ast: "ASSET001" },
+                        { id: "CON001", ast: "ASSET002" },
+                        { id: "CON002", ast: "ASSET003" },
+                        { id: "AUD001", ast: "ASSET001" },
+                      ].map((item) => (
+                        <button
+                          key={`${item.id}-${item.ast}`}
+                          type="button"
+                          onClick={() => {
+                            setSearchIdentityId(item.id);
+                            setSearchAssetId(item.ast);
+                          }}
+                          style={{
+                            background: "rgba(30, 41, 59, 0.7)",
+                            border: "1px solid #334155",
+                            color: "#94a3b8",
+                            borderRadius: "6px",
+                            padding: "3px 8px",
+                            fontSize: "11px",
+                            cursor: "pointer",
+                            fontFamily: "monospace"
+                          }}
+                        >
+                          {item.id} ➔ {item.ast}
+                        </button>
+                      ))}
+                    </div>
                   </div>
 
                   {searchError && (
@@ -324,7 +377,16 @@ function AccessManagement() {
                   )}
 
                   {/* Checked Access Display Card */}
-                  {checkedAccess && (
+                  {checkedAccess && !checkedAccess.hasAccess && checkedAccess.hasAccess !== undefined && (
+                    <div className="asset-error" style={{ background: "rgba(239, 68, 68, 0.1)", border: "1px solid rgba(239, 68, 68, 0.3)", color: "#f87171", padding: "16px", borderRadius: "10px", marginTop: "16px" }}>
+                      <div style={{ fontWeight: 600, fontSize: "14px", marginBottom: "4px" }}>No Access Permission Found</div>
+                      <div style={{ fontSize: "13px", color: "#cbd5e1" }}>
+                        Identity <strong>{checkedAccess.identityId}</strong> has <strong>NO</strong> active access permission for asset <strong>{checkedAccess.assetId}</strong> on the Hyperledger Fabric ledger.
+                      </div>
+                    </div>
+                  )}
+
+                  {checkedAccess && (checkedAccess.hasAccess || checkedAccess.status === "ACTIVE") && (
                     <div className="access-record-card">
                       <div className="access-record-header">
                         <div>
@@ -336,15 +398,15 @@ function AccessManagement() {
                         <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
                           <span
                             className={`access-badge ${
-                              checkedAccess.status === "ACTIVE"
-                                ? "access-badge-active"
-                                : "access-badge-revoked"
+                              checkedAccess.status === "REVOKED"
+                                ? "access-badge-revoked"
+                                : "access-badge-active"
                             }`}
                           >
-                            {checkedAccess.status || "UNKNOWN"}
+                            {checkedAccess.status || (checkedAccess.hasAccess ? "ACTIVE" : "NO ACCESS")}
                           </span>
 
-                          {checkedAccess.status === "ACTIVE" && (
+                          {(checkedAccess.status === "ACTIVE" || checkedAccess.hasAccess) && (
                             <button
                               type="button"
                               className="access-btn-revoke"
@@ -371,7 +433,7 @@ function AccessManagement() {
                           <span className="access-entity-label">Permission Level</span>
                           <span className="access-entity-value">
                             <span className="access-permission-tag">
-                              {checkedAccess.permission}
+                              {checkedAccess.permission || "Read"}
                             </span>
                           </span>
                         </div>
@@ -397,14 +459,14 @@ function AccessManagement() {
                         <div className="access-detail-item">
                           <span className="access-detail-label">Current Status</span>
                           <span className="access-detail-value">
-                            {checkedAccess.status}
+                            {checkedAccess.status || (checkedAccess.hasAccess ? "ACTIVE" : "NO ACCESS")}
                           </span>
                         </div>
 
                         <div className="access-detail-item">
                           <span className="access-detail-label">Created / Granted Date</span>
                           <span className="access-detail-value">
-                            {formatDate(checkedAccess.createdAt || checkedAccess.timestamp)}
+                            {formatDate(checkedAccess.createdAt || checkedAccess.timestamp || checkedAccess.updatedAt)}
                           </span>
                         </div>
                       </div>

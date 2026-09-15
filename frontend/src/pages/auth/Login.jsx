@@ -102,7 +102,7 @@ function Login() {
             <strong> Hyperledger Fabric</strong>
           </div>
 
-          <div style={{ marginTop: "18px", textAlign: "center" }}>
+          <div style={{ marginTop: "18px", display: "flex", flexDirection: "column", gap: "8px", alignItems: "center" }}>
             <Link
               to="/verify"
               style={{
@@ -115,6 +115,19 @@ function Login() {
               }}
             >
               <span>🔍</span> Verify a digital asset publicly →
+            </Link>
+            <Link
+              to="/verify-identity"
+              style={{
+                color: "#38bdf8",
+                fontSize: "13px",
+                textDecoration: "none",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "6px",
+              }}
+            >
+              <span>🆔</span> Verify a decentralized identifier (DID) →
             </Link>
           </div>
         </div>

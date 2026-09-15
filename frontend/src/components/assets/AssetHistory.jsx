@@ -78,23 +78,38 @@ function AssetHistory({ assetId }) {
           </tr>
         </thead>
         <tbody>
-          {history.map((entry, index) => (
-            <tr key={entry.txId || index}>
-              <td className="asset-history-txid">
-                {truncateTxId(entry.txId)}
-              </td>
-              <td>{entry.action || entry.type || "—"}</td>
-              <td>{entry.actor || entry.owner || "—"}</td>
-              <td className="asset-history-time">
-                {formatTimestamp(entry.timestamp || entry.createdAt)}
-              </td>
-              <td>
-                <span className="status-badge">
-                  {entry.status || "COMMITTED"}
-                </span>
-              </td>
-            </tr>
-          ))}
+          {history.map((entry, index) => {
+            const val = entry.value || {};
+            const action = entry.action || (entry.isDelete ? "DELETE" : index === 0 ? "MINT_ASSET" : "UPDATE_ASSET");
+            const actor = entry.actor || val.owner || entry.owner || "—";
+            const ts = entry.timestamp || val.updatedAt || val.createdAt || entry.createdAt;
+
+            return (
+              <tr key={entry.txId || index}>
+                <td className="asset-history-txid">
+                  {truncateTxId(entry.txId)}
+                </td>
+                <td>
+                  <span style={{ fontWeight: 600, color: action === "MINT_ASSET" ? "#34d399" : "#60a5fa" }}>
+                    {action}
+                  </span>
+                </td>
+                <td>
+                  <span style={{ fontFamily: "monospace", color: "#f1f5f9" }}>
+                    {actor}
+                  </span>
+                </td>
+                <td className="asset-history-time">
+                  {formatTimestamp(ts)}
+                </td>
+                <td>
+                  <span className="status-badge">
+                    {val.status || entry.status || "COMMITTED"}
+                  </span>
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>

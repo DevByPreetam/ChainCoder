@@ -5,7 +5,8 @@ const express = require('express');
 const {
     createIdentity,
     fetchIdentity,
-    revokeExistingIdentity
+    revokeExistingIdentity,
+    getIdentityDID
 } = require('../controllers/identityController');
 
 const {
@@ -30,6 +31,12 @@ router.get(
     '/:identityId',
     authenticate,
     fetchIdentity
+);
+
+router.get(
+    '/:identityId/did',
+    authenticate,
+    getIdentityDID
 );
 
 router.patch(

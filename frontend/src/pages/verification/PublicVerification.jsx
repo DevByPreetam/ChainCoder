@@ -127,7 +127,10 @@ function PublicVerification() {
           </div>
         </Link>
 
-        <div>
+        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+          <Link to="/verify-identity" className="pv-nav-link" style={{ background: "transparent" }}>
+            DID Identity Verification
+          </Link>
           {isAuthenticated ? (
             <Link to="/dashboard" className="pv-nav-link">
               Go to Dashboard →
@@ -310,13 +313,30 @@ function PublicVerification() {
 
               {/* Asset Details Grid */}
               <div className="pv-section">
-                <h4 className="pv-section-title">Asset Metadata</h4>
+                <h4 className="pv-section-title">Token & Asset Metadata</h4>
 
                 <div className="pv-grid">
                   <div className="pv-cell">
-                    <div className="pv-cell-label">Asset ID</div>
+                    <div className="pv-cell-label">NFT / Token ID</div>
                     <div className="pv-cell-value highlight">
-                      {result.asset.assetId}
+                      {result.asset.tokenId || result.asset.assetId}
+                    </div>
+                  </div>
+
+                  <div className="pv-cell">
+                    <div className="pv-cell-label">Token Standard</div>
+                    <div className="pv-cell-value">
+                      <span style={{
+                        padding: "2px 8px",
+                        borderRadius: "4px",
+                        background: "#1e293b",
+                        color: "#60a5fa",
+                        fontSize: "12px",
+                        fontWeight: 600,
+                        border: "1px solid #2563eb"
+                      }}>
+                        {result.asset.tokenStandard || "CHAINCODER-NFT"}
+                      </span>
                     </div>
                   </div>
 
@@ -347,6 +367,34 @@ function PublicVerification() {
                       {result.asset.ownerOrganization || "N/A"}
                     </div>
                   </div>
+
+                  {result.asset.ownerDID && (
+                    <div className="pv-cell" style={{ gridColumn: "span 2" }}>
+                      <div className="pv-cell-label">Owner Decentralized Identifier (DID)</div>
+                      <div className="pv-cell-value highlight" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                        <span style={{ wordBreak: "break-all", fontSize: "12px" }}>
+                          {result.asset.ownerDID}
+                        </span>
+                        <div style={{ display: "flex", gap: "6px" }}>
+                          <button
+                            type="button"
+                            className="pv-btn-secondary"
+                            style={{ padding: "2px 8px", fontSize: "11px" }}
+                            onClick={() => handleCopy("ownerDID", result.asset.ownerDID)}
+                          >
+                            {copiedKey === "ownerDID" ? "✓ Copied" : "Copy"}
+                          </button>
+                          <Link
+                            to={`/verify-identity?did=${encodeURIComponent(result.asset.ownerDID)}`}
+                            className="pv-btn-secondary"
+                            style={{ padding: "2px 8px", fontSize: "11px", textDecoration: "none" }}
+                          >
+                            Verify Identity →
+                          </Link>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   <div className="pv-cell">
                     <div className="pv-cell-label">Created At</div>

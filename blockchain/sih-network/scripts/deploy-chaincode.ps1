@@ -1,4 +1,4 @@
-﻿# ============================================================
+# ============================================================
 # ChainCoder - Chaincode Packaging & Deployment Script
 # blockchain/sih-network/scripts/deploy-chaincode.ps1
 #
@@ -28,7 +28,10 @@ param(
     [string]$Version = "2.4"
 )
 
-$ErrorActionPreference = "Stop"
+$ErrorActionPreference = "Continue"
+if (Test-Path Variable:\PSNativeCommandUseErrorActionPreference) {
+    $PSNativeCommandUseErrorActionPreference = $false
+}
 
 # ------------------------------------------------------------
 # 1. Robust Path Calculation
@@ -230,7 +233,7 @@ foreach ($org in @("BEL", "Auditor", "Contractor")) {
     $apprExit = $LASTEXITCODE
 
     if ($apprExit -ne 0 -and $apprOut -notmatch "already approved") {
-        Write-Host "ERROR: Failed to approve chaincode for $org: $apprOut" -ForegroundColor Red
+        Write-Host "ERROR: Failed to approve chaincode for ${org}: $apprOut" -ForegroundColor Red
         exit 1
     }
     Write-Host "    $org approved successfully." -ForegroundColor Green
@@ -293,7 +296,8 @@ Write-Host ""
 Write-Host "STEP 7 - Verifying committed definition ..." -ForegroundColor Yellow
 
 $committedVerify = & $peerExe lifecycle chaincode querycommitted --channelID sihchannel --name sih-contract 2>&1
-if ($committedVerify -notmatch "Version: ${Version}") {
+$committedVerifyText = ($committedVerify | Out-String)
+if ($committedVerifyText -notmatch "Version: ${Version}") {
     Write-Host "ERROR: Verification failed: sih-contract v$Version is not committed on sihchannel." -ForegroundColor Red
     Write-Host "Output: $committedVerify" -ForegroundColor Gray
     exit 1

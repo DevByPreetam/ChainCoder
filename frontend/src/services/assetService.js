@@ -141,3 +141,25 @@ export async function uploadAssetDocument(assetId, file) {
 
   return data.data || data;
 }
+
+export async function transferAsset(assetId, newOwner) {
+  const response = await fetch(
+    `${API_URL}/assets/${encodeURIComponent(assetId)}/transfer`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        ...authHeaders(),
+      },
+      body: JSON.stringify({ newOwner }),
+    }
+  );
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "Unable to transfer asset");
+  }
+
+  return data.asset || data.data?.asset || data;
+}

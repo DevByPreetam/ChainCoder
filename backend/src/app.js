@@ -17,6 +17,7 @@ const auditorRoutes = require('./routes/auditorRoutes');
 const auditRoutes = require('./routes/auditRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const verifyRoutes = require('./routes/verifyRoutes');
+const didRoutes = require('./routes/didRoutes');
 
 const uploadDir = path.join(__dirname, '../uploads');
 
@@ -37,6 +38,7 @@ app.use('/api/auditor', auditorRoutes);
 app.use('/api/audit', auditRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/verify', verifyRoutes);
+app.use('/api/did', didRoutes);
 
 app.get('/api/health', (req, res) => {
     res.json({

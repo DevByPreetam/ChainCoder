@@ -15,6 +15,7 @@ import AuditorDashboard from "../pages/auditor/AuditorDashboard";
 import AuditHistory from "../pages/audit/AuditHistory";
 import Notifications from "../pages/notifications/Notifications";
 import PublicVerification from "../pages/verification/PublicVerification";
+import PublicIdentityVerification from "../pages/verification/PublicIdentityVerification";
 import Settings from "../pages/settings/Settings";
 
 function ProtectedRoute({ children }) {
@@ -36,6 +37,7 @@ function AppRoutes() {
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/verify" element={<PublicVerification />} />
+      <Route path="/verify-identity" element={<PublicIdentityVerification />} />
 
       <Route
         path="/dashboard"
