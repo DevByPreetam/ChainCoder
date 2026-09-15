@@ -1,4 +1,4 @@
-﻿# ============================================================
+# ============================================================
 # ChainCoder - Network Health Test
 # scripts/test-network.ps1
 #
@@ -15,7 +15,9 @@
 
 $ErrorActionPreference = "Continue"
 
-$ProjectRoot = Split-Path -Parent $PSScriptRoot
+$ScriptDir   = Split-Path -Parent $MyInvocation.MyCommand.Path
+if (-not $ScriptDir) { $ScriptDir = $PSScriptRoot }
+$ProjectRoot = (Resolve-Path (Join-Path $ScriptDir "..")).Path
 Set-Location $ProjectRoot
 
 Write-Host ""
