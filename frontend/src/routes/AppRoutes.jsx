@@ -13,6 +13,7 @@ import Approvals from "../pages/approvals/Approvals";
 import IdentityManagement from "../pages/identity/IdentityManagement";
 import AuditorDashboard from "../pages/auditor/AuditorDashboard";
 import AuditHistory from "../pages/audit/AuditHistory";
+import Notifications from "../pages/notifications/Notifications";
 
 function ProtectedRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
@@ -127,6 +128,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <AuditHistory />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/notifications"
+        element={
+          <ProtectedRoute>
+            <Notifications />
           </ProtectedRoute>
         }
       />

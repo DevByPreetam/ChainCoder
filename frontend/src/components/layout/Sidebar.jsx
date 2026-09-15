@@ -1,8 +1,10 @@
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { useNotifications } from "../../context/NotificationContext";
 
 function Sidebar() {
   const { user, logout } = useAuth();
+  const { unreadCount } = useNotifications();
 
   const menuItems = [
     {
@@ -120,6 +122,11 @@ function Sidebar() {
           >
             <span className="sidebar-icon">{item.icon}</span>
             <span>{item.label}</span>
+            {item.path === "/notifications" && unreadCount > 0 && (
+              <span className="sidebar-badge">
+                {unreadCount > 99 ? "99+" : unreadCount}
+              </span>
+            )}
           </NavLink>
         ))}
       </nav>
