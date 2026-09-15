@@ -58,6 +58,13 @@ function Sidebar() {
       roles: ["Admin", "Manager", "Auditor"],
     },
     {
+      label: "Auditor Dashboard",
+      path: "/auditor",
+      icon: "🛡",
+      roles: ["Auditor"],
+      organizations: ["Auditor"],
+    },
+    {
       label: "Audit History",
       path: "/audit",
       icon: "▤",

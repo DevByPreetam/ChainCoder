@@ -11,6 +11,7 @@ import AccessManagement from "../pages/access/AccessManagement";
 import AccessRequests from "../pages/access/AccessRequests";
 import Approvals from "../pages/approvals/Approvals";
 import IdentityManagement from "../pages/identity/IdentityManagement";
+import AuditorDashboard from "../pages/auditor/AuditorDashboard";
 
 function ProtectedRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
@@ -101,6 +102,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <Approvals />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/auditor"
+        element={
+          <ProtectedRoute>
+            <AuditorDashboard />
           </ProtectedRoute>
         }
       />

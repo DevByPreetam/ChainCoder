@@ -1,0 +1,352 @@
+/* ============================================================
+   Auditor Dashboard Styles
+   ============================================================ */
+
+.auditor-header-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.auditor-compliance-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  background: #121e2a;
+  border: 1px solid #1e3a5f;
+  border-radius: 8px;
+  font-size: 12px;
+  color: #93c5fd;
+  font-weight: 600;
+}
+
+.auditor-btn-export {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background: #1e293b;
+  color: #f1f5f9;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.auditor-btn-export:hover {
+  background: #334155;
+  border-color: #475569;
+  color: #ffffff;
+}
+
+.auditor-btn-export:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.auditor-btn-refresh {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  background: #0f172a;
+  color: #94a3b8;
+  border: 1px solid #1e293b;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.auditor-btn-refresh:hover {
+  background: #1e293b;
+  color: #ffffff;
+}
+
+.auditor-oversight-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 14px 18px;
+  background: #0b1a24;
+  border: 1px solid #19405c;
+  border-radius: 10px;
+  color: #bae6fd;
+  font-size: 13px;
+  line-height: 1.5;
+  margin-bottom: 24px;
+}
+
+.auditor-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.auditor-metric-card {
+  background: #0f151e;
+  border: 1px solid #252f3e;
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.auditor-metric-card span {
+  font-size: 11px;
+  color: #748095;
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.auditor-metric-card strong {
+  font-size: 22px;
+  color: #f1f5f9;
+  margin-bottom: 4px;
+}
+
+.auditor-metric-subtext {
+  font-size: 11px;
+  color: #64748b;
+}
+
+/* Tabs */
+.auditor-tabs-container {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #252f3e;
+  padding-bottom: 12px;
+  overflow-x: auto;
+}
+
+.auditor-tab-btn {
+  background: transparent;
+  border: none;
+  color: #748095;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+
+.auditor-tab-btn:hover {
+  color: #ffffff;
+  background: #141b26;
+}
+
+.auditor-tab-btn.active {
+  color: #ffffff;
+  background: #1c2636;
+  border: 1px solid #2d3d54;
+}
+
+.auditor-tab-count {
+  background: #252f3e;
+  color: #94a3b8;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 10px;
+}
+
+.auditor-tab-btn.active .auditor-tab-count {
+  background: #3b82f6;
+  color: #ffffff;
+}
+
+/* Search bar */
+.auditor-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.auditor-search-input {
+  flex: 1;
+  max-width: 380px;
+  padding: 9px 14px;
+  background: #080b12;
+  border: 1px solid #252f3e;
+  border-radius: 8px;
+  color: #ffffff;
+  font-size: 13px;
+  outline: none;
+}
+
+.auditor-search-input:focus {
+  border-color: #64748b;
+}
+
+/* Tables */
+.auditor-card {
+  background: #0f151e;
+  border: 1px solid #252f3e;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.auditor-table-wrapper {
+  overflow-x: auto;
+}
+
+.auditor-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.auditor-table th {
+  text-align: left;
+  padding: 10px 14px;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  border-bottom: 1px solid #1e293b;
+}
+
+.auditor-table td {
+  padding: 12px 14px;
+  color: #cbd5e1;
+  border-bottom: 1px solid #17202e;
+}
+
+.auditor-table tr:hover td {
+  background: #121a24;
+}
+
+.auditor-table tr:last-child td {
+  border-bottom: none;
+}
+
+.mono-cell {
+  font-family: monospace;
+  font-size: 12px;
+}
+
+.auditor-btn-view {
+  padding: 5px 12px;
+  background: #1c2636;
+  border: 1px solid #2d3d54;
+  border-radius: 6px;
+  color: #93c5fd;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.auditor-btn-view:hover {
+  background: #2d3d54;
+  color: #ffffff;
+}
+
+/* History Modal */
+.auditor-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 20px;
+}
+
+.auditor-modal-box {
+  background: #0f151e;
+  border: 1px solid #252f3e;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 800px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.auditor-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 24px;
+  border-bottom: 1px solid #252f3e;
+}
+
+.auditor-modal-body {
+  padding: 24px;
+  overflow-y: auto;
+}
+
+.auditor-modal-close {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.auditor-modal-close:hover {
+  color: #ffffff;
+}
+
+/* Access Denied Card */
+.access-denied-box {
+  background: #1f1214;
+  border: 1px solid #571e24;
+  border-radius: 12px;
+  padding: 32px;
+  text-align: center;
+  max-width: 520px;
+  margin: 60px auto;
+}
+
+.access-denied-box h2 {
+  color: #f87171;
+  margin: 0 0 10px;
+  font-size: 22px;
+}
+
+.access-denied-box p {
+  color: #fca5a5;
+  margin: 0 0 20px;
+  font-size: 14px;
+}
+
+/* Responsive */
+@media (max-width: 1100px) {
+  .auditor-metrics-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 700px) {
+  .auditor-metrics-grid {
+    grid-template-columns: 1fr;
+  }
+}
