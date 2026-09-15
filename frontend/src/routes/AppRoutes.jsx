@@ -15,6 +15,7 @@ import AuditorDashboard from "../pages/auditor/AuditorDashboard";
 import AuditHistory from "../pages/audit/AuditHistory";
 import Notifications from "../pages/notifications/Notifications";
 import PublicVerification from "../pages/verification/PublicVerification";
+import Settings from "../pages/settings/Settings";
 
 function ProtectedRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
@@ -150,6 +151,14 @@ function AppRoutes() {
         }
       />
 
+      <Route
+        path="/settings"
+        element={
+          <ProtectedRoute>
+            <Settings />
+          </ProtectedRoute>
+        }
+      />
       <Route
         path="*"
         element={<Navigate to="/dashboard" replace />}

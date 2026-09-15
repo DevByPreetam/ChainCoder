@@ -82,12 +82,6 @@ function AssetDetails() {
     }
   }
 
-  function truncateHash(hash) {
-    if (!hash) return "—";
-    if (hash.length <= 20) return hash;
-    return hash.substring(0, 10) + "…" + hash.substring(hash.length - 10);
-  }
-
   return (
     <div className="app-layout">
       <Sidebar />

@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useAuth } from "../../context/AuthContext";
 import Sidebar from "../../components/layout/Sidebar";
 import Topbar from "../../components/layout/Topbar";
 import AssetCard from "../../components/assets/AssetCard";
@@ -9,7 +8,6 @@ import "../../styles/layout.css";
 import "../../styles/assets.css";
 
 function MyAssets() {
-  const { user } = useAuth();
 
   const [searchId, setSearchId] = useState("");
   const [assets, setAssets] = useState([]);
@@ -45,10 +43,6 @@ function MyAssets() {
     } finally {
       setSearching(false);
     }
-  }
-
-  function handleRemoveAsset(assetId) {
-    setAssets((prev) => prev.filter((a) => a.assetId !== assetId));
   }
 
   return (
