@@ -66,9 +66,10 @@ function Sidebar() {
     },
     {
       label: "Audit History",
-      path: "/audit",
+      path: "/audit-history",
       icon: "▤",
-      roles: ["Admin", "Manager", "Auditor"],
+      roles: ["Auditor"],
+      organizations: ["Auditor"],
     },
     {
       label: "Notifications",
