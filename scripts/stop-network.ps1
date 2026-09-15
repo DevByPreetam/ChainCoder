@@ -1,4 +1,4 @@
-﻿# ============================================================
+# ============================================================
 # ChainCoder - Stop Fabric Network (safe - preserves volumes)
 # scripts/stop-network.ps1
 #
@@ -14,7 +14,9 @@
 
 $ErrorActionPreference = "Stop"
 
-$ProjectRoot = Split-Path -Parent $PSScriptRoot
+$ScriptDir   = Split-Path -Parent $MyInvocation.MyCommand.Path
+if (-not $ScriptDir) { $ScriptDir = $PSScriptRoot }
+$ProjectRoot = (Resolve-Path (Join-Path $ScriptDir "..")).Path
 Set-Location $ProjectRoot
 
 $NetworkDir = Join-Path $ProjectRoot "blockchain\sih-network"
