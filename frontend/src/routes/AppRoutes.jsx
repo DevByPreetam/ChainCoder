@@ -14,6 +14,7 @@ import IdentityManagement from "../pages/identity/IdentityManagement";
 import AuditorDashboard from "../pages/auditor/AuditorDashboard";
 import AuditHistory from "../pages/audit/AuditHistory";
 import Notifications from "../pages/notifications/Notifications";
+import PublicVerification from "../pages/verification/PublicVerification";
 
 function ProtectedRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
@@ -33,6 +34,7 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/verify" element={<PublicVerification />} />
 
       <Route
         path="/dashboard"

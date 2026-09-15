@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import "../../styles/login.css";
 
@@ -100,6 +100,22 @@ function Login() {
           <div className="login-footer">
             <span>Secure access powered by</span>
             <strong> Hyperledger Fabric</strong>
+          </div>
+
+          <div style={{ marginTop: "18px", textAlign: "center" }}>
+            <Link
+              to="/verify"
+              style={{
+                color: "#60a5fa",
+                fontSize: "13px",
+                textDecoration: "none",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "6px",
+              }}
+            >
+              <span>🔍</span> Verify a digital asset publicly →
+            </Link>
           </div>
         </div>
 
