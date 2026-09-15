@@ -28,7 +28,7 @@ function Sidebar() {
       path: "/identities",
       icon: "◎",
       roles: ["Admin", "Manager"],
-      organizations: ["BEL"],
+      organizations: ["BEL", "Contractor"],
     },
     {
       label: "Mint Asset",

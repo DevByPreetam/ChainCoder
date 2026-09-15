@@ -10,6 +10,7 @@ import MintAsset from "../pages/assets/MintAsset";
 import AccessManagement from "../pages/access/AccessManagement";
 import AccessRequests from "../pages/access/AccessRequests";
 import Approvals from "../pages/approvals/Approvals";
+import IdentityManagement from "../pages/identity/IdentityManagement";
 
 function ProtectedRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
@@ -45,7 +46,15 @@ function AppRoutes() {
                 <MyIdentity />
             </ProtectedRoute>
         }
-        />
+      />
+      <Route
+        path="/identities"
+        element={
+          <ProtectedRoute>
+            <IdentityManagement />
+          </ProtectedRoute>
+        }
+      />
       <Route
         path="/assets"
         element={

@@ -1,15 +1,22 @@
 const API_URL = "http://localhost:5000/api";
 
-export async function getIdentity(identityId) {
-  const token = localStorage.getItem("chaincoder_token");
+function getToken() {
+  return localStorage.getItem("chaincoder_token");
+}
 
+function authHeaders() {
+  const token = getToken();
+  return {
+    Authorization: `Bearer ${token}`,
+  };
+}
+
+export async function getIdentity(identityId) {
   const response = await fetch(
     `${API_URL}/identities/${encodeURIComponent(identityId)}`,
     {
       method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers: authHeaders(),
     }
   );
 
@@ -20,4 +27,41 @@ export async function getIdentity(identityId) {
   }
 
   return data.identity;
+}
+
+export async function createIdentity({ identityId, name, organization, role }) {
+  const response = await fetch(`${API_URL}/identities`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(),
+    },
+    body: JSON.stringify({ identityId, name, organization, role }),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "Unable to register identity");
+  }
+
+  return data.identity || data;
+}
+
+export async function revokeIdentity(identityId) {
+  const response = await fetch(
+    `${API_URL}/identities/${encodeURIComponent(identityId)}/revoke`,
+    {
+      method: "PATCH",
+      headers: authHeaders(),
+    }
+  );
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "Unable to revoke identity");
+  }
+
+  return data.identity || data;
 }
