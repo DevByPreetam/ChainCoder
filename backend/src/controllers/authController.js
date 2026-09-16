@@ -67,7 +67,24 @@ async function enrollNewUser(req, res) {
             return sendError(res, 403, 'Access denied', 'FORBIDDEN');
         }
 
-        const user = enrollUser({ userId, name, organization, role, password });
+        const { registerIdentityInCA } = require('../services/caService');
+        const { registerIdentity } = require('../services/fabricService');
+
+        let caResult = null;
+        try {
+            caResult = await registerIdentityInCA({ organization, identityId: userId, role });
+        } catch (caErr) {
+            console.warn('Fabric CA enrollment notice:', caErr.message);
+        }
+
+        let ledgerIdentity = null;
+        try {
+            ledgerIdentity = await registerIdentity('BEL', userId, name, organization, role);
+        } catch (fabErr) {
+            console.warn('Fabric ledger enrollment notice:', fabErr.message);
+        }
+
+        const user = await enrollUser({ userId, name, organization, role, password });
 
         recordFromRequest(req, {
             action: 'USER_ENROLLED',
@@ -78,7 +95,9 @@ async function enrollNewUser(req, res) {
 
         return sendSuccess(res, {
             message: 'User enrolled successfully',
-            user
+            user,
+            identity: ledgerIdentity,
+            ca: caResult
         }, 201);
     } catch (error) {
         console.error('Enroll error:', error);

@@ -51,8 +51,12 @@ async function initDb() {
                     organization VARCHAR(50) NOT NULL,
                     role VARCHAR(50) NOT NULL,
                     password_hash VARCHAR(255) NOT NULL,
+                    status VARCHAR(30) DEFAULT 'ACTIVE',
                     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
                 );
+
+                ALTER TABLE users ADD COLUMN IF NOT EXISTS status VARCHAR(30) DEFAULT 'ACTIVE';
+                UPDATE users SET status = 'ACTIVE' WHERE status IS NULL;
 
                 CREATE TABLE IF NOT EXISTS access_requests (
                     request_id VARCHAR(100) PRIMARY KEY,

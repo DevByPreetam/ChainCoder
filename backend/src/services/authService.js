@@ -57,7 +57,7 @@ async function login(userId, password) {
     if (isDbConnected()) {
         try {
             const res = await query(
-                'SELECT user_id AS "userId", name, organization, role, password_hash AS "passwordHash" FROM users WHERE user_id = $1',
+                'SELECT user_id AS "userId", name, organization, role, password_hash AS "passwordHash", status FROM users WHERE user_id = $1',
                 [userId]
             );
             if (res.rows.length > 0) {
@@ -157,10 +157,29 @@ async function enrollUser({ userId, name, organization, role, password }) {
         );
     }
 
-    const existing = users.find((item) => item.userId === userId);
+    if (typeof password !== 'string' || password.length < 6) {
+        throw new AppError(
+            'Password must be at least 6 characters',
+            400,
+            'BAD_REQUEST'
+        );
+    }
 
-    if (existing) {
+    const existingMem = users.find((item) => item.userId === userId);
+    if (existingMem) {
         throw new AppError('A user with this ID already exists', 409, 'CONFLICT');
+    }
+
+    if (isDbConnected()) {
+        try {
+            const dbCheck = await query('SELECT user_id FROM users WHERE user_id = $1', [userId]);
+            if (dbCheck.rows && dbCheck.rows.length > 0) {
+                throw new AppError('A user with this ID already exists', 409, 'CONFLICT');
+            }
+        } catch (err) {
+            if (err.statusCode === 409) throw err;
+            console.warn('DB check in enrollUser notice:', err.message);
+        }
     }
 
     const passwordHash = bcrypt.hashSync(password, 10);
@@ -169,21 +188,23 @@ async function enrollUser({ userId, name, organization, role, password }) {
         name,
         organization,
         role,
+        status: 'ACTIVE',
         passwordHash
     };
 
     if (isDbConnected()) {
         try {
             await query(
-                `INSERT INTO users (user_id, name, organization, role, password_hash)
-                 VALUES ($1, $2, $3, $4, $5)`,
-                [userId, name, organization, role, passwordHash]
+                `INSERT INTO users (user_id, name, organization, role, password_hash, status)
+                 VALUES ($1, $2, $3, $4, $5, $6)`,
+                [userId, name, organization, role, passwordHash, 'ACTIVE']
             );
         } catch (dbErr) {
             console.error('Failed to persist enrolled user to PostgreSQL:', dbErr.message);
             if (dbErr.code === '23505') { // unique violation
                 throw new AppError('A user with this ID already exists', 409, 'CONFLICT');
             }
+            throw dbErr;
         }
     }
 
@@ -193,12 +214,28 @@ async function enrollUser({ userId, name, organization, role, password }) {
         userId: user.userId,
         name: user.name,
         organization: user.organization,
-        role: user.role
+        role: user.role,
+        status: 'ACTIVE'
     };
+}
+
+async function updateUserStatus(userId, status) {
+    const memUser = users.find(item => item.userId === userId);
+    if (memUser) {
+        memUser.status = status;
+    }
+    if (isDbConnected()) {
+        try {
+            await query('UPDATE users SET status = $1 WHERE user_id = $2', [status, userId]);
+        } catch (err) {
+            console.warn(`Failed to update status in DB for user ${userId}:`, err.message);
+        }
+    }
 }
 
 module.exports = {
     login,
     listUsers,
-    enrollUser
+    enrollUser,
+    updateUserStatus
 };

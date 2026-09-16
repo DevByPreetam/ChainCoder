@@ -56,6 +56,8 @@ function IdentityManagement() {
   const [regName, setRegName] = useState("");
   const [regOrg, setRegOrg] = useState(initialOrg);
   const [regRole, setRegRole] = useState(initialRole);
+  const [regPassword, setRegPassword] = useState("");
+  const [regConfirmPassword, setRegConfirmPassword] = useState("");
   const [registering, setRegistering] = useState(false);
   const [registerError, setRegisterError] = useState("");
   const [registerSuccess, setRegisterSuccess] = useState(null);
@@ -73,6 +75,8 @@ function IdentityManagement() {
       setRegRole("Employee");
     } else if (newOrg === "Contractor") {
       setRegRole("User");
+    } else if (newOrg === "Auditor") {
+      setRegRole("Auditor");
     }
   };
 
@@ -144,6 +148,21 @@ function IdentityManagement() {
       return;
     }
 
+    if (!regPassword) {
+      setRegisterError("Password is required for the new account.");
+      return;
+    }
+
+    if (regPassword.length < 8) {
+      setRegisterError("Password must be at least 8 characters long.");
+      return;
+    }
+
+    if (regPassword !== regConfirmPassword) {
+      setRegisterError("Passwords do not match.");
+      return;
+    }
+
     // Role safety validation based on caller
     if (isBelManager && regOrg !== "BEL") {
       setRegisterError("BEL Manager can only register BEL staff.");
@@ -162,14 +181,16 @@ function IdentityManagement() {
         name: trimmedName,
         organization: regOrg,
         role: regRole,
+        password: regPassword,
       });
 
       const confirmedIdentity = {
-        identityId: newIdentity.identityId || trimmedId,
+        identityId: newIdentity.identityId || newIdentity.userId || trimmedId,
         name: newIdentity.name || trimmedName,
         organization: newIdentity.organization || regOrg,
         role: newIdentity.role || regRole,
         status: newIdentity.status || "ACTIVE",
+        did: newIdentity.did || `did:chaincoder:${regOrg}:${trimmedId}`,
         createdAt: newIdentity.createdAt || new Date().toISOString(),
       };
 
@@ -185,6 +206,8 @@ function IdentityManagement() {
       // Clear input fields for next entry
       setRegId("");
       setRegName("");
+      setRegPassword("");
+      setRegConfirmPassword("");
     } catch (err) {
       setRegisterError(err.message || "Unable to register identity on blockchain.");
     } finally {
@@ -589,12 +612,12 @@ function IdentityManagement() {
                     <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "10px" }}>
                       <span style={{ color: "#10b981", fontSize: "18px" }}>✓</span>
                       <strong style={{ color: "#ffffff", fontSize: "15px" }}>
-                        Identity Registered Successfully
+                        Identity & Platform Account Provisioned Successfully
                       </strong>
                     </div>
 
                     <p style={{ margin: "0 0 12px", color: "#94a3b8", fontSize: "12px" }}>
-                      Identity transaction was confirmed on Hyperledger Fabric.
+                      Identity transaction confirmed on Hyperledger Fabric ledger, Fabric CA certificate provisioned, and application account created.
                     </p>
 
                     <div className="identity-grid" style={{ marginBottom: "12px" }}>
@@ -617,6 +640,12 @@ function IdentityManagement() {
                       <div className="identity-card">
                         <span>Status</span>
                         <strong style={{ color: "#34d399" }}>● ACTIVE</strong>
+                      </div>
+                      <div className="identity-card" style={{ gridColumn: "1 / -1" }}>
+                        <span>W3C Decentralized Identifier (DID)</span>
+                        <strong style={{ fontFamily: "monospace", fontSize: "12px", color: "#38bdf8" }}>
+                          {registerSuccess.did || `did:chaincoder:${registerSuccess.organization}:${registerSuccess.identityId}`}
+                        </strong>
                       </div>
                     </div>
 
@@ -683,6 +712,7 @@ function IdentityManagement() {
                       >
                         <option value="BEL">BEL (Bharat Electronics Limited)</option>
                         <option value="Contractor">Contractor Organization</option>
+                        <option value="Auditor">Auditor Organization</option>
                       </select>
                     ) : (
                       <input
@@ -695,7 +725,7 @@ function IdentityManagement() {
                     )}
                     <span className="identity-input-help">
                       {isBelAdmin
-                        ? "BEL Admin can provision identities for BEL or Contractor organizations."
+                        ? "BEL Admin can provision identities for BEL, Contractor, or Auditor organizations."
                         : isBelManager
                         ? "BEL Managers can only provision BEL internal staff."
                         : "Contractor Admins can only provision Contractor users."}
@@ -719,6 +749,8 @@ function IdentityManagement() {
                           <option value="Manager">Manager (Asset minting & access grantor)</option>
                           {isBelAdmin && <option value="Admin">Admin (Full organizational control)</option>}
                         </>
+                      ) : regOrg === "Auditor" ? (
+                        <option value="Auditor">Auditor (Independent compliance & access review)</option>
                       ) : (
                         <>
                           <option value="User">User (Standard contractor participant)</option>
@@ -731,15 +763,56 @@ function IdentityManagement() {
                     </span>
                   </div>
 
+                  {/* Initial Password */}
+                  <div className="identity-form-group">
+                    <label className="identity-form-label">
+                      Initial Password <span style={{ color: "#ef4444" }}>*</span>
+                    </label>
+                    <input
+                      type="password"
+                      className="identity-form-input"
+                      placeholder="Enter a secure temporary password (min. 8 characters)"
+                      value={regPassword}
+                      onChange={(e) => setRegPassword(e.target.value)}
+                      disabled={registering}
+                      required
+                    />
+                    <span className="identity-input-help">
+                      Used for initial application authentication. Stored securely using bcrypt hash.
+                    </span>
+                  </div>
+
+                  {/* Confirm Password */}
+                  <div className="identity-form-group">
+                    <label className="identity-form-label">
+                      Confirm Password <span style={{ color: "#ef4444" }}>*</span>
+                    </label>
+                    <input
+                      type="password"
+                      className="identity-form-input"
+                      placeholder="Re-enter password to confirm"
+                      value={regConfirmPassword}
+                      onChange={(e) => setRegConfirmPassword(e.target.value)}
+                      disabled={registering}
+                      required
+                    />
+                  </div>
+
                   <div style={{ marginTop: "24px", display: "flex", gap: "12px" }}>
                     <button
                       type="submit"
                       className="access-btn-primary"
-                      disabled={registering || !regId.trim() || !regName.trim()}
+                      disabled={
+                        registering ||
+                        !regId.trim() ||
+                        !regName.trim() ||
+                        !regPassword.trim() ||
+                        !regConfirmPassword.trim()
+                      }
                     >
                       {registering
-                        ? "Registering Identity on Blockchain..."
-                        : "Register Identity on Blockchain"}
+                        ? "Registering Identity & Account..."
+                        : "Register Identity & Create Account"}
                     </button>
 
                     <button

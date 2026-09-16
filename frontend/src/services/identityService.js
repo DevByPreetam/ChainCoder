@@ -29,14 +29,14 @@ export async function getIdentity(identityId) {
   return data.identity;
 }
 
-export async function createIdentity({ identityId, name, organization, role }) {
+export async function createIdentity({ identityId, name, organization, role, password }) {
   const response = await fetch(`${API_URL}/identities`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       ...authHeaders(),
     },
-    body: JSON.stringify({ identityId, name, organization, role }),
+    body: JSON.stringify({ identityId, name, organization, role, password }),
   });
 
   const data = await response.json();
