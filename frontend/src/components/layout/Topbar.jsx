@@ -6,12 +6,14 @@ import {
   getNotificationMeta,
   formatNotificationTime,
 } from "../../utils/notificationHelpers";
+import Icon from "../common/Icon";
 
 import "../../styles/notifications.css";
 
 function Topbar({
   title = "Dashboard",
   subtitle = "Overview of your ChainCoder activity",
+  onMenuClick = () => {},
 }) {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -36,7 +38,7 @@ function Topbar({
     }
   };
 
-  // Close on outside click
+  // Close on outside click or Escape
   useEffect(() => {
     function handleClickOutside(e) {
       if (popoverRef.current && !popoverRef.current.contains(e.target)) {
@@ -82,118 +84,136 @@ function Topbar({
 
   return (
     <header className="topbar">
+      {/* Left: Mobile hamburger + Page Titles */}
       <div className="topbar-left">
-        <div>
+        <button
+          type="button"
+          className="topbar-menu-btn"
+          onClick={onMenuClick}
+          aria-label="Open navigation menu"
+        >
+          <Icon name="menu" size={20} />
+        </button>
+
+        <div className="topbar-titles">
           <h1>{title}</h1>
           <p>{subtitle}</p>
         </div>
       </div>
 
+      {/* Right: Network Status, Notification Bell, User Avatar */}
       <div className="topbar-right">
+        {/* Live Blockchain Network Status Pill */}
+        <div className="topbar-blockchain-pill" title="Hyperledger Fabric Channel Status">
+          <span className="blockchain-dot" />
+          <span>sihchannel · v2.10</span>
+        </div>
+
+        <div className="topbar-divider" />
+
+        {/* Notifications Popover */}
         <div className="topbar-notification-wrapper" ref={popoverRef}>
           <button
-            className={`topbar-icon notification-btn ${isOpen ? "active" : ""}`}
+            type="button"
+            className={`notification-btn ${isOpen ? "active" : ""}`}
             onClick={handleToggle}
             title="Notifications"
             aria-label={`Notifications${
               unreadCount > 0 ? `, ${unreadCount} unread` : ""
             }`}
-            aria-expanded={isOpen}
-            type="button"
           >
-            🔔
-            {unreadCount > 0 && (
-              <span className="topbar-notification-badge">
-                {unreadCount > 99 ? "99+" : unreadCount}
-              </span>
-            )}
+            <Icon name="bell" size={18} />
+            {unreadCount > 0 && <span className="notification-dot" />}
           </button>
 
+          {/* Notification Popover Dropdown */}
           {isOpen && (
-            <div className="notification-popover" role="dialog" aria-label="Notifications panel">
+            <div className="notification-popover" role="dialog" aria-label="Recent notifications">
               <div className="popover-header">
-                <span className="popover-header-title">Notifications</span>
-                {unreadCount > 0 && (
-                  <span className="popover-header-badge">
-                    {unreadCount} unread
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <span style={{ fontWeight: "700", color: "#ffffff", fontSize: "14px" }}>
+                    Notifications
                   </span>
-                )}
+                  {unreadCount > 0 && (
+                    <span className="popover-badge">
+                      {unreadCount} unread
+                    </span>
+                  )}
+                </div>
+
+                <Link
+                  to="/notifications"
+                  onClick={() => setIsOpen(false)}
+                  className="popover-view-all-link"
+                >
+                  View all →
+                </Link>
               </div>
 
               <div className="popover-list">
-                {loading && notifications.length === 0 ? (
-                  <div className="popover-loading">Loading notifications...</div>
-                ) : recentNotifications.length === 0 ? (
-                  <div className="popover-empty">No notifications</div>
-                ) : (
+                {loading && (
+                  <div className="popover-empty">
+                    <p>Loading notifications...</p>
+                  </div>
+                )}
+
+                {!loading && recentNotifications.length === 0 && (
+                  <div className="popover-empty">
+                    <Icon name="bell" size={28} color="#475569" />
+                    <p style={{ marginTop: "8px" }}>No recent notifications</p>
+                  </div>
+                )}
+
+                {!loading &&
                   recentNotifications.map((notif) => {
                     const meta = getNotificationMeta(notif, user);
-                    const timeAgo = formatNotificationTime(notif.createdAt);
-
                     return (
                       <div
                         key={notif.id}
-                        className={`popover-item ${!notif.read ? "unread" : ""}`}
+                        className={`popover-item ${notif.read ? "read" : "unread"}`}
                         onClick={() => handleNotificationClick(notif)}
                         role="button"
                         tabIndex={0}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" || e.key === " ") {
-                            handleNotificationClick(notif);
-                          }
-                        }}
+                        onKeyDown={(e) => e.key === "Enter" && handleNotificationClick(notif)}
                       >
-                        <div className={`popover-item-icon ${meta.badgeClass}`}>
-                          {meta.icon}
-                        </div>
-                        <div className="popover-item-body">
-                          <div className="popover-item-title">
-                            {notif.title}
-                          </div>
-                          {notif.message && (
-                            <div className="popover-item-msg">
-                              {notif.message}
-                            </div>
-                          )}
-                          <div className="popover-item-meta">
-                            <span>{timeAgo}</span>
-                            {!notif.read && (
-                              <span
-                                className="popover-item-unread-dot"
-                                title="Unread"
-                              />
-                            )}
+                        <span className="popover-item-icon">{meta.icon}</span>
+
+                        <div className="popover-item-content">
+                          <div className="popover-item-title">{notif.title}</div>
+                          <div className="popover-item-body">{notif.message}</div>
+                          <div className="popover-item-time">
+                            {formatNotificationTime(notif.createdAt)}
                           </div>
                         </div>
+
+                        {!notif.read && <span className="popover-item-unread-dot" />}
                       </div>
                     );
-                  })
-                )}
+                  })}
               </div>
 
               <div className="popover-footer">
                 <Link
                   to="/notifications"
-                  className="popover-view-all"
                   onClick={() => setIsOpen(false)}
+                  className="popover-footer-btn"
                 >
-                  View all notifications →
+                  Open Notification Center
                 </Link>
               </div>
             </div>
           )}
         </div>
 
-        <div className="topbar-divider"></div>
-
-        <div className="topbar-user">
-          <div className="topbar-avatar">{user?.name?.charAt(0) || "U"}</div>
+        {/* User Chip */}
+        <div className="topbar-user" title={`Logged in as ${user?.name} (${user?.role})`}>
+          <div className="topbar-avatar">
+            {user?.name?.charAt(0)?.toUpperCase() || "U"}
+          </div>
 
           <div className="topbar-user-info">
-            <strong>{user?.name}</strong>
-            <span>
-              {user?.organization} · {user?.role}
-            </span>
+            <strong>{user?.name || "Participant"}</strong>
+            <span className="topbar-user-role">{user?.organization} · {user?.role}</span>
           </div>
         </div>
       </div>

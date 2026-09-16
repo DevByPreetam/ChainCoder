@@ -263,12 +263,21 @@ function Approvals() {
     }
   }
 
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   return (
     <div className="app-layout">
-      <Sidebar />
+      <Sidebar
+        isOpen={mobileMenuOpen}
+        onClose={() => setMobileMenuOpen(false)}
+      />
 
       <section className="main-area">
-        <Topbar />
+        <Topbar
+          title="Multi-Party Governance Approvals"
+          subtitle="Review access proposals, authorize stage transitions, and co-sign on-chain grants"
+          onMenuClick={() => setMobileMenuOpen(true)}
+        />
 
         <main className="main-content">
           {/* Header */}

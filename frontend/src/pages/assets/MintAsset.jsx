@@ -234,12 +234,21 @@ function MintAsset() {
     setUploadFeedback(null);
   }
 
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   return (
     <div className="app-layout">
-      <Sidebar />
+      <Sidebar
+        isOpen={mobileMenuOpen}
+        onClose={() => setMobileMenuOpen(false)}
+      />
 
       <section className="main-area">
-        <Topbar />
+        <Topbar
+          title="Mint Digital Asset Token"
+          subtitle="Anchor verified defense specifications to Hyperledger Fabric with IPFS proofs"
+          onMenuClick={() => setMobileMenuOpen(true)}
+        />
 
         <main className="main-content">
           <div className="page-header">

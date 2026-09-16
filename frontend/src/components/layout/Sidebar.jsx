@@ -1,159 +1,220 @@
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useNotifications } from "../../context/NotificationContext";
+import Icon from "../common/Icon";
 
-function Sidebar() {
+function Sidebar({ isOpen = false, onClose = () => {} }) {
   const { user, logout } = useAuth();
   const { unreadCount } = useNotifications();
 
+  // Navigation Items with functional role permissions matching backend
   const menuItems = [
     {
-      label: "Dashboard",
-      path: "/dashboard",
-      icon: "⌂",
-      roles: ["Admin", "Manager", "Employee", "Auditor", "User"],
+      section: "CORE PLATFORM",
+      items: [
+        {
+          label: "Dashboard",
+          path: "/dashboard",
+          icon: "dashboard",
+          roles: ["Admin", "Manager", "Employee", "Auditor", "User"],
+        },
+        {
+          label: "My Identity",
+          path: "/identity",
+          icon: "identity",
+          roles: ["Admin", "Manager", "Employee", "Auditor", "User"],
+        },
+        {
+          label: "My Assets",
+          path: "/assets",
+          icon: "assets",
+          roles: ["Admin", "Manager", "Employee", "Auditor", "User"],
+        },
+      ],
     },
     {
-      label: "My Identity",
-      path: "/identity",
-      icon: "◉",
-      roles: ["Admin", "Manager", "Employee", "Auditor", "User"],
+      section: "ASSET & ACCESS OPERATIONS",
+      items: [
+        {
+          label: "Mint Asset",
+          path: "/assets/mint",
+          icon: "mint",
+          roles: ["Admin", "Manager"],
+          organizations: ["BEL"],
+        },
+        {
+          label: "Access Management",
+          path: "/access",
+          icon: "access",
+          roles: ["Admin", "Manager"],
+          organizations: ["BEL"],
+        },
+        {
+          label: "Access Requests",
+          path: "/access/requests",
+          icon: "requests",
+          roles: ["Admin", "User"],
+          organizations: ["Contractor"],
+        },
+        {
+          label: "Approvals Queue",
+          path: "/approvals",
+          icon: "approvals",
+          roles: ["Admin", "Manager", "Auditor"],
+        },
+      ],
     },
     {
-      label: "My Assets",
-      path: "/assets",
-      icon: "◆",
-      roles: ["Admin", "Manager", "Employee", "Auditor", "User"],
-    },
-    {
-      label: "Identity Management",
-      path: "/identities",
-      icon: "◎",
-      roles: ["Admin", "Manager"],
-      organizations: ["BEL", "Contractor"],
-    },
-    {
-      label: "Mint Asset",
-      path: "/assets/mint",
-      icon: "+",
-      roles: ["Admin", "Manager"],
-      organizations: ["BEL"],
-    },
-    {
-      label: "Access Management",
-      path: "/access",
-      icon: "⇄",
-      roles: ["Admin", "Manager"],
-      organizations: ["BEL"],
-    },
-    {
-      label: "Access Requests",
-      path: "/access/requests",
-      icon: "↗",
-      roles: ["Admin", "User"],
-      organizations: ["Contractor"],
-    },
-    {
-      label: "Approvals",
-      path: "/approvals",
-      icon: "✓",
-      roles: ["Admin", "Manager", "Auditor"],
-    },
-    {
-      label: "Auditor Dashboard",
-      path: "/auditor",
-      icon: "🛡",
-      roles: ["Auditor"],
-      organizations: ["Auditor"],
-    },
-    {
-      label: "Audit History",
-      path: "/audit-history",
-      icon: "▤",
-      roles: ["Auditor"],
-      organizations: ["Auditor"],
-    },
-    {
-      label: "Notifications",
-      path: "/notifications",
-      icon: "●",
-      roles: ["Admin", "Manager", "Employee", "Auditor", "User"],
-    },
-    {
-      label: "Settings",
-      path: "/settings",
-      icon: "⚙",
-      roles: ["Admin", "Manager", "Employee", "Auditor", "User"],
+      section: "SECURITY & GOVERNANCE",
+      items: [
+        {
+          label: "Identity Management",
+          path: "/identities",
+          icon: "identities",
+          roles: ["Admin", "Manager"],
+          organizations: ["BEL", "Contractor"],
+        },
+        {
+          label: "Auditor Console",
+          path: "/auditor",
+          icon: "auditor",
+          roles: ["Auditor"],
+          organizations: ["Auditor"],
+        },
+        {
+          label: "Audit Ledger History",
+          path: "/audit-history",
+          icon: "audit-history",
+          roles: ["Auditor"],
+          organizations: ["Auditor"],
+        },
+        {
+          label: "Notifications",
+          path: "/notifications",
+          icon: "notifications",
+          roles: ["Admin", "Manager", "Employee", "Auditor", "User"],
+          badge: unreadCount > 0 ? (unreadCount > 99 ? "99+" : unreadCount) : null,
+        },
+        {
+          label: "Platform Settings",
+          path: "/settings",
+          icon: "settings",
+          roles: ["Admin", "Manager", "Employee", "Auditor", "User"],
+        },
+      ],
     },
   ];
 
-  const visibleItems = menuItems.filter((item) => {
-    const roleAllowed = item.roles.includes(user?.role);
-    const organizationAllowed =
-      !item.organizations ||
-      item.organizations.includes(user?.organization);
+  const handleLinkClick = () => {
+    onClose();
+  };
 
-    return roleAllowed && organizationAllowed;
-  });
+  const handleLogout = () => {
+    onClose();
+    logout();
+  };
 
   return (
-    <aside className="sidebar">
-      <div className="sidebar-brand">
-        <div className="sidebar-logo">C</div>
+    <>
+      {/* Mobile Drawer Backdrop */}
+      <div
+        className={`sidebar-backdrop ${isOpen ? "open" : ""}`}
+        onClick={onClose}
+        aria-hidden="true"
+      />
 
-        <div>
-          <h2>ChainCoder</h2>
-          <span>Secure Platform</span>
-        </div>
-      </div>
-
-      <div className="sidebar-section-title">
-        MAIN MENU
-      </div>
-
-      <nav className="sidebar-nav">
-        {visibleItems.map((item) => (
-          <NavLink
-            key={item.path}
-            to={item.path}
-            className={({ isActive }) =>
-              `sidebar-link ${isActive ? "active" : ""}`
-            }
-          >
-            <span className="sidebar-icon">{item.icon}</span>
-            <span>{item.label}</span>
-            {item.path === "/notifications" && unreadCount > 0 && (
-              <span className="sidebar-badge">
-                {unreadCount > 99 ? "99+" : unreadCount}
-              </span>
-            )}
+      {/* Main Sidebar */}
+      <aside className={`sidebar ${isOpen ? "open" : ""}`}>
+        {/* Brand Header */}
+        <div className="sidebar-brand">
+          <NavLink to="/dashboard" className="brand-main" onClick={handleLinkClick}>
+            <div className="sidebar-logo">
+              <Icon name="shield" size={20} color="#ffffff" />
+            </div>
+            <div className="sidebar-brand-text">
+              <h2>ChainCoder</h2>
+              <span className="sidebar-brand-badge">SIH 2026 DEFENSE</span>
+            </div>
           </NavLink>
-        ))}
-      </nav>
 
-      <div className="sidebar-bottom">
-        <div className="sidebar-user">
-          <div className="sidebar-avatar">
-            {user?.name?.charAt(0) || "U"}
-          </div>
-
-          <div className="sidebar-user-info">
-            <strong>{user?.name}</strong>
-            <span>
-              {user?.organization} · {user?.role}
-            </span>
-          </div>
+          <button
+            type="button"
+            className="sidebar-close-btn"
+            onClick={onClose}
+            aria-label="Close navigation"
+          >
+            <Icon name="close" size={18} />
+          </button>
         </div>
 
-        <button
-          className="sidebar-logout"
-          onClick={logout}
-        >
-          <span>↪</span>
-          Logout
-        </button>
-      </div>
-    </aside>
+        {/* Navigation Sections */}
+        <div style={{ flex: 1, overflowY: "auto" }}>
+          {menuItems.map((group) => {
+            const filtered = group.items.filter((item) => {
+              const roleAllowed = item.roles.includes(user?.role);
+              const orgAllowed =
+                !item.organizations ||
+                item.organizations.includes(user?.organization);
+              return roleAllowed && orgAllowed;
+            });
+
+            if (filtered.length === 0) return null;
+
+            return (
+              <div key={group.section}>
+                <div className="sidebar-section-title">{group.section}</div>
+                <nav className="sidebar-nav">
+                  {filtered.map((item) => (
+                    <NavLink
+                      key={item.path}
+                      to={item.path}
+                      className={({ isActive }) =>
+                        `sidebar-link ${isActive ? "active" : ""}`
+                      }
+                      onClick={handleLinkClick}
+                    >
+                      <span className="sidebar-link-icon">
+                        <Icon name={item.icon} size={17} />
+                      </span>
+                      <span>{item.label}</span>
+                      {item.badge && (
+                        <span className="sidebar-badge">{item.badge}</span>
+                      )}
+                    </NavLink>
+                  ))}
+                </nav>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* User Profile & Logout Area */}
+        <div className="sidebar-bottom">
+          <div className="sidebar-user">
+            <div className="sidebar-avatar">
+              {user?.name?.charAt(0)?.toUpperCase() || "U"}
+            </div>
+
+            <div className="sidebar-user-info">
+              <strong title={user?.name}>{user?.name || "Participant"}</strong>
+              <div className="sidebar-user-role-badge">
+                <span />
+                {user?.organization} · {user?.role}
+              </div>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            className="sidebar-logout"
+            onClick={handleLogout}
+          >
+            <Icon name="logout" size={15} />
+            <span>Sign Out</span>
+          </button>
+        </div>
+      </aside>
+    </>
   );
 }
 

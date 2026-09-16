@@ -527,4 +527,33 @@
   .access-search-row {
     flex-direction: column;
   }
+
+  .access-tabs {
+    overflow-x: auto;
+    white-space: nowrap;
+    padding-bottom: 8px;
+  }
+
+  .access-tab-btn {
+    flex-shrink: 0;
+  }
+
+  .access-table {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+@media (max-width: 480px) {
+  .access-search-card,
+  .access-record-card {
+    padding: 16px;
+  }
+
+  .access-btn-primary {
+    width: 100%;
+    text-align: center;
+  }
 }

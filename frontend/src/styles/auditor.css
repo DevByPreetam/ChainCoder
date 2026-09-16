@@ -345,8 +345,38 @@
   }
 }
 
+@media (max-width: 900px) {
+  .auditor-metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .auditor-header-container {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
 @media (max-width: 700px) {
   .auditor-metrics-grid {
     grid-template-columns: 1fr;
+  }
+
+  .auditor-tabs-container {
+    padding-bottom: 8px;
+  }
+
+  .auditor-table {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+@media (max-width: 480px) {
+  .auditor-btn-export,
+  .auditor-btn-refresh {
+    width: 100%;
+    justify-content: center;
   }
 }

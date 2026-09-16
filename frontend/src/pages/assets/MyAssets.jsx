@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import Sidebar from "../../components/layout/Sidebar";
 import Topbar from "../../components/layout/Topbar";
 import AssetCard from "../../components/assets/AssetCard";
@@ -69,21 +70,38 @@ function MyAssets() {
     }
   }
 
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   return (
     <div className="app-layout">
-      <Sidebar />
+      <Sidebar
+        isOpen={mobileMenuOpen}
+        onClose={() => setMobileMenuOpen(false)}
+      />
 
       <section className="main-area">
-        <Topbar />
+        <Topbar
+          title="Digital Assets Repository"
+          subtitle="Inspect verified defense documents and tokenized blockchain assets"
+          onMenuClick={() => setMobileMenuOpen(true)}
+        />
 
         <main className="main-content">
-          <div className="page-header">
+          <div className="page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px" }}>
             <div>
-              <h2>My Assets</h2>
+              <h2>Digital Asset Registry</h2>
               <p>
-                Manage your digital assets and blockchain ownership.
+                Cryptographic assets minted and anchored on Hyperledger Fabric with IPFS proofs.
               </p>
             </div>
+
+            <Link
+              to="/assets/mint"
+              className="btn btn-primary"
+              style={{ padding: "8px 16px", fontSize: "13px" }}
+            >
+              + Mint New Asset
+            </Link>
           </div>
 
           <form className="asset-search-bar" onSubmit={handleSearch}>

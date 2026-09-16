@@ -40,6 +40,7 @@ function AssetDetails() {
   const [transferError, setTransferError] = useState("");
   const [transferSuccess, setTransferSuccess] = useState("");
   const [copiedDid, setCopiedDid] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Key to force reload history after transfer
   const [historyKey, setHistoryKey] = useState(0);
@@ -162,10 +163,17 @@ function AssetDetails() {
 
   return (
     <div className="app-layout">
-      <Sidebar />
+      <Sidebar
+        isOpen={mobileMenuOpen}
+        onClose={() => setMobileMenuOpen(false)}
+      />
 
       <section className="main-area">
-        <Topbar />
+        <Topbar
+          title="Digital Asset Specifications"
+          subtitle={`Inspect token metadata and IPFS document provenance for ${tokenId || "Asset"}`}
+          onMenuClick={() => setMobileMenuOpen(true)}
+        />
 
         <main className="main-content">
           <div className="asset-details-back">

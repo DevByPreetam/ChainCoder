@@ -66,6 +66,9 @@ function AccessManagement() {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState("");
 
+  // Mobile drawer state
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   // Auto-sync grantTo when grantIdentityId changes (if grantTo is untouched or same)
   function handleGrantIdentityChange(val) {
     setGrantIdentityId(val);
@@ -242,10 +245,17 @@ function AccessManagement() {
 
   return (
     <div className="app-layout">
-      <Sidebar />
+      <Sidebar
+        isOpen={mobileMenuOpen}
+        onClose={() => setMobileMenuOpen(false)}
+      />
 
       <section className="main-area">
-        <Topbar />
+        <Topbar
+          title="Access Control"
+          subtitle="Manage permissions & policies"
+          onMenuClick={() => setMobileMenuOpen(true)}
+        />
 
         <main className="main-content">
           {/* Header */}

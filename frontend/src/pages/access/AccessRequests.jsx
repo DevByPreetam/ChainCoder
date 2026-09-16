@@ -69,6 +69,9 @@ function AccessRequests() {
   const [rejectTarget, setRejectTarget] = useState(null);
   const [rejectReason, setRejectReason] = useState("");
 
+  // Mobile drawer state
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   // Filter for 'all' tab
   const [statusFilter, setStatusFilter] = useState("ALL");
 
@@ -298,10 +301,17 @@ function AccessRequests() {
 
   return (
     <div className="app-layout">
-      <Sidebar />
+      <Sidebar
+        isOpen={mobileMenuOpen}
+        onClose={() => setMobileMenuOpen(false)}
+      />
 
       <section className="main-area">
-        <Topbar />
+        <Topbar
+          title="Access Requests"
+          subtitle="Manage approvals & request access"
+          onMenuClick={() => setMobileMenuOpen(true)}
+        />
 
         <main className="main-content">
           {/* Page Header */}

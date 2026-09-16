@@ -259,12 +259,21 @@ function IdentityManagement() {
     }
   };
 
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   return (
     <div className="app-layout">
-      <Sidebar />
+      <Sidebar
+        isOpen={mobileMenuOpen}
+        onClose={() => setMobileMenuOpen(false)}
+      />
 
       <section className="main-area">
-        <Topbar />
+        <Topbar
+          title="Identity Lifecycle Management"
+          subtitle="Provision Fabric CA identities, deterministic W3C DIDs, and audit status"
+          onMenuClick={() => setMobileMenuOpen(true)}
+        />
 
         <main className="main-content">
           {/* Page Header */}

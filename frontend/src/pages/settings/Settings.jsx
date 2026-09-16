@@ -12,6 +12,7 @@ function Settings() {
   const { user, logout, token } = useAuth();
   const navigate = useNavigate();
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleLogoutConfirm = () => {
     setIsLogoutModalOpen(false);
@@ -88,12 +89,16 @@ function Settings() {
 
   return (
     <div className="app-layout">
-      <Sidebar />
+      <Sidebar
+        isOpen={mobileMenuOpen}
+        onClose={() => setMobileMenuOpen(false)}
+      />
 
       <section className="main-area">
         <Topbar
           title="Settings"
           subtitle="Account details, role permissions, and platform status"
+          onMenuClick={() => setMobileMenuOpen(true)}
         />
 
         <main className="main-content">

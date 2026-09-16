@@ -10,6 +10,7 @@ import { getAccess } from "../../services/accessService";
 import { getPendingAccessRequests } from "../../services/accessRequestService";
 import { getNotifications } from "../../services/notificationService";
 import { getAuditorTransactions, getRecentActivities } from "../../services/auditorService";
+import Icon from "../../components/common/Icon";
 
 import "../../styles/layout.css";
 import "../../styles/dashboard.css";
@@ -25,45 +26,9 @@ const KNOWN_ASSETS = [
 ];
 const KNOWN_IDENTITIES = ["BEL001", "BEL002", "BEL003", "AUD001", "CON001", "CON002"];
 
-function formatActivityTime(isoString) {
-  if (!isoString) return "Recently";
-  const date = new Date(isoString);
-  if (isNaN(date.getTime())) return "Recently";
-
-  const now = new Date();
-  const isToday =
-    date.getDate() === now.getDate() &&
-    date.getMonth() === now.getMonth() &&
-    date.getFullYear() === now.getFullYear();
-
-  const yesterday = new Date(now);
-  yesterday.setDate(yesterday.getDate() - 1);
-  const isYesterday =
-    date.getDate() === yesterday.getDate() &&
-    date.getMonth() === yesterday.getMonth() &&
-    date.getFullYear() === yesterday.getFullYear();
-
-  const timeStr = date.toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-
-  if (isToday) {
-    return `Today, ${timeStr}`;
-  }
-  if (isYesterday) {
-    return `Yesterday, ${timeStr}`;
-  }
-
-  const dateStr = date.toLocaleDateString([], {
-    day: "numeric",
-    month: "short",
-  });
-  return `${dateStr}, ${timeStr}`;
-}
-
 function Dashboard() {
   const { user } = useAuth();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const [stats, setStats] = useState({
     myAssets: 0,
@@ -97,95 +62,83 @@ function Dashboard() {
         // 2. Active Access permissions count
         let accessCount = 0;
         if (user?.role === "Auditor") {
-          // Auditor inspects all active relationships across known identities
-          for (const id of KNOWN_IDENTITIES) {
-            for (const astId of KNOWN_ASSETS) {
+          for (const ident of KNOWN_IDENTITIES) {
+            for (const astId of KNOWN_ASSETS.slice(0, 3)) {
               try {
-                const acc = await getAccess(id, astId);
-                if (acc?.hasAccess) accessCount++;
+                const acc = await getAccess(ident, astId);
+                if (acc && acc.status === "ACTIVE") {
+                  accessCount++;
+                }
               } catch {
-                // Ignore
+                // Not found
               }
             }
           }
         } else {
-          // Check active grants for current user
           for (const astId of KNOWN_ASSETS) {
             try {
               const acc = await getAccess(user?.userId, astId);
-              if (acc?.hasAccess) accessCount++;
+              if (acc && acc.status === "ACTIVE") {
+                accessCount++;
+              }
             } catch {
-              // Ignore
+              // Not found
             }
           }
         }
 
-        // 3. Pending Approvals
+        // 3. Pending approvals count
         let pendingCount = 0;
         try {
-          const pending = await getPendingAccessRequests();
-          if (Array.isArray(pending)) {
-            pendingCount = pending.filter((r) => r.status === "PENDING").length;
+          const pendingList = await getPendingAccessRequests();
+          if (Array.isArray(pendingList)) {
+            pendingCount = pendingList.length;
           }
         } catch {
-          // If role cannot view pending requests, leave 0
+          // Not accessible
         }
 
-        // 4. Blockchain Events & Recent Activity (Real Fabric ledger + live system activity)
-        let recentActs = [];
-        let eventCount = 0;
-
+        // 4. Real blockchain activity & transaction events
+        let eventList = [];
         try {
-          const acts = await getRecentActivities();
-          if (Array.isArray(acts) && acts.length > 0) {
-            eventCount = acts.length;
-            recentActs = acts.slice(0, 7).map((t) => ({
-              action: t.action || "Blockchain Transaction",
-              resource: t.resource || "Hyperledger Fabric",
-              status: t.status || "SUCCESS",
-              time: formatActivityTime(t.timestamp),
-              txId: t.txId,
-            }));
-          }
-        } catch (err) {
-          console.warn("Could not fetch recent activities from /api/audit/recent:", err);
-        }
-
-        // Fallback for auditor transactions if recent activities empty
-        if (recentActs.length === 0 && user?.organization === "Auditor" && user?.role === "Auditor") {
-          try {
+          if (user?.role === "Auditor") {
             const txs = await getAuditorTransactions();
             if (Array.isArray(txs)) {
-              eventCount = Math.max(eventCount, txs.length);
-              recentActs = txs.slice(0, 7).map((t) => ({
-                action: t.action ? t.action.replace(/_/g, " ") : "Transaction Executed",
-                resource: t.resourceId || t.resourceType || "Hyperledger Fabric",
-                status: t.success ? "SUCCESS" : "FAILED",
-                time: formatActivityTime(t.timestamp),
-                txId: t.transactionId || null,
+              eventList = txs.map((tx) => ({
+                action: tx.action || tx.type || "Transaction",
+                resource: tx.resourceId || tx.assetId || tx.identityId || "Platform",
+                status: tx.status || (tx.success ? "SUCCESS" : "CONFIRMED"),
+                time: tx.timestamp ? new Date(tx.timestamp).toLocaleTimeString() : "Recent",
+                txId: tx.txId || tx.transactionId || null,
               }));
             }
-          } catch {
-            // Fallback to notifications
+          } else {
+            const rawAct = await getRecentActivities();
+            if (Array.isArray(rawAct)) {
+              eventList = rawAct.map((item) => ({
+                action: item.title || item.action || "Ledger Event",
+                resource: item.resourceId || item.assetId || "Blockchain",
+                status: item.status || "CONFIRMED",
+                time: item.timestamp ? new Date(item.timestamp).toLocaleTimeString() : "Recent",
+                txId: item.txId || null,
+              }));
+            }
           }
-        }
-
-        // Fallback to notifications if still empty
-        if (recentActs.length === 0) {
+        } catch {
+          // Fallback to notifications
           try {
             const notifs = await getNotifications();
             if (Array.isArray(notifs)) {
-              eventCount = Math.max(eventCount, notifs.length);
-              recentActs = notifs.slice(0, 7).map((n) => ({
-                action: n.title || n.type?.replace(/_/g, " ") || "Blockchain Update",
-                resource: n.resourceId || n.resourceType || n.message || "Ledger",
-                status: "SUCCESS",
-                time: formatActivityTime(n.createdAt),
+              eventList = notifs.slice(0, 5).map((n) => ({
+                action: n.title || "Notification",
+                resource: n.resourceId || "Account",
+                status: "ACTIVE",
+                time: n.createdAt ? new Date(n.createdAt).toLocaleTimeString() : "Recent",
                 txId: null,
               }));
             }
           } catch {
-            // Ignore
+            // Keep empty
           }
         }
 
@@ -194,9 +147,9 @@ function Dashboard() {
             myAssets: assetCount,
             activeAccess: accessCount,
             pendingApprovals: pendingCount,
-            blockchainEvents: Math.max(eventCount, assetCount + accessCount),
+            blockchainEvents: eventList.length,
           });
-          setActivities(recentActs);
+          setActivities(eventList);
         }
       } catch (err) {
         console.error("Dashboard metrics error:", err);
@@ -216,64 +169,82 @@ function Dashboard() {
 
   return (
     <div className="app-layout">
-
-      <Sidebar />
+      <Sidebar
+        isOpen={mobileMenuOpen}
+        onClose={() => setMobileMenuOpen(false)}
+      />
 
       <section className="main-area">
-
-        <Topbar />
+        <Topbar
+          title="Security Operations Console"
+          subtitle={`Welcome back, ${user?.name || "Participant"} · ${user?.organization} ${user?.role}`}
+          onMenuClick={() => setMobileMenuOpen(true)}
+        />
 
         <main className="main-content">
-
+          {/* Welcome Banner */}
           <div className="dashboard-welcome">
-            <h2>Welcome to ChainCoder</h2>
+            <div className="welcome-text">
+              <h2>Welcome to ChainCoder Defense Platform</h2>
+              <p>
+                Decentralized identity governance, role-based access control, and cryptographic asset integrity anchored on Hyperledger Fabric.
+              </p>
+            </div>
 
-            <p>
-              Monitor identities, digital assets, access permissions,
-              and blockchain activity.
-            </p>
+            <div className="welcome-network-status">
+              <div className="status-card-pill">
+                <Icon name="database" size={14} color="#3b82f6" />
+                <span>Channel: <strong>sihchannel</strong></span>
+              </div>
+              <div className="status-card-pill">
+                <Icon name="shield" size={14} color="#10b981" />
+                <span>Node: <strong>{user?.organization}MSP</strong></span>
+              </div>
+            </div>
           </div>
 
+          {/* 4-Stat Metric Cards */}
           <div className="stats-grid">
-
             <StatCard
-              title="My Assets"
+              title="Accessible Assets"
               value={loading ? "…" : stats.myAssets.toString()}
-              description="Digital assets under your access"
-              icon="◆"
+              description="NFT tokens & defense specs verified"
+              iconName="assets"
+              trend="ACTIVE"
             />
 
             <StatCard
-              title="Active Access"
+              title="Active Permissions"
               value={loading ? "…" : stats.activeAccess.toString()}
-              description="Currently active permissions"
-              icon="⇄"
+              description="Cryptographic access grants"
+              iconName="access"
+              trend="CONFIRMED"
             />
 
             <StatCard
               title="Pending Approvals"
               value={loading ? "…" : stats.pendingApprovals.toString()}
-              description="Requests waiting for action"
-              icon="✓"
+              description="Two-tier governance requests"
+              iconName="approvals"
+              trend={stats.pendingApprovals > 0 ? "ACTION REQUIRED" : "CLEAR"}
             />
 
             <StatCard
-              title="Blockchain Events"
+              title="Audited Events"
               value={loading ? "…" : stats.blockchainEvents.toString()}
-              description="Recent recorded transactions"
-              icon="▤"
+              description="Ledger transactions in current view"
+              iconName="history"
+              trend="VERIFIED"
             />
-
           </div>
 
+          {/* Dynamic Role-Based Quick Actions */}
           <QuickActions />
 
+          {/* Recent Blockchain Activity Table */}
           <ActivityTable activities={activities} />
-
         </main>
-
       </section>
-
     </div>
   );
 }

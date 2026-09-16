@@ -29,6 +29,7 @@ function Notifications() {
   const [filter, setFilter] = useState("ALL");
   const [markingReadId, setMarkingReadId] = useState(null);
   const [actionError, setActionError] = useState(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     fetchNotifications();
@@ -65,12 +66,16 @@ function Notifications() {
 
   return (
     <div className="app-layout">
-      <Sidebar />
+      <Sidebar
+        isOpen={mobileMenuOpen}
+        onClose={() => setMobileMenuOpen(false)}
+      />
 
       <section className="main-area">
         <Topbar
           title="Notifications"
           subtitle="Review system events, access requests, and security updates"
+          onMenuClick={() => setMobileMenuOpen(true)}
         />
 
         <main className="main-content">

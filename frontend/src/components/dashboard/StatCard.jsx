@@ -1,20 +1,27 @@
-function StatCard({ title, value, description, icon }) {
-    return (
-      <div className="stat-card">
-        <div className="stat-card-top">
-          <span className="stat-card-title">{title}</span>
-          <span className="stat-card-icon">{icon}</span>
-        </div>
-  
-        <div className="stat-card-value">
-          {value}
-        </div>
-  
-        <div className="stat-card-description">
-          {description}
+import Icon from "../common/Icon";
+
+function StatCard({ title, value, description, iconName = "dashboard", trend = null }) {
+  return (
+    <div className="stat-card">
+      <div className="stat-card-top">
+        <span className="stat-card-title">{title}</span>
+        <div className="stat-card-icon-wrap">
+          <Icon name={iconName} size={18} />
         </div>
       </div>
-    );
-  }
-  
-  export default StatCard;
+
+      <div className="stat-card-value">
+        {value}
+      </div>
+
+      <div className="stat-card-footer">
+        <span className="stat-card-description">{description}</span>
+        {trend && (
+          <span className="stat-card-trend">{trend}</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default StatCard;

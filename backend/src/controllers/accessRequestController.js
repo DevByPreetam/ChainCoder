@@ -47,7 +47,7 @@ async function requestAccess(req, res) {
         await getAsset(assetId, 'BEL');
         await getIdentity(identityId);
 
-        const request = createAccessRequest({
+        const request = await createAccessRequest({
             requesterId: req.user.userId,
             requesterName: req.user.name,
             organization: req.user.organization,
@@ -130,7 +130,7 @@ async function getAccessRequest(req, res) {
 async function approveAccessRequest(req, res) {
     try {
         const { requestId } = req.params;
-        const request = approveRequest(requestId, req.user.userId);
+        const request = await approveRequest(requestId, req.user.userId);
 
         recordFromRequest(req, {
             action: 'ACCESS_REQUEST_APPROVED',
@@ -170,7 +170,7 @@ async function rejectAccessRequest(req, res) {
         const { requestId } = req.params;
         const { reason } = req.body || {};
 
-        const request = rejectRequest(
+        const request = await rejectRequest(
             requestId,
             req.user.userId,
             reason
@@ -228,7 +228,7 @@ async function auditorApproveAccessRequest(req, res) {
             request.permission
         );
 
-        const approvedRequest = auditorApproveRequest(
+        const approvedRequest = await auditorApproveRequest(
             requestId,
             req.user.userId
         );

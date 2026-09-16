@@ -66,6 +66,9 @@ function AuditHistory() {
   const [error, setError] = useState("");
   const [transactions, setTransactions] = useState([]);
 
+  // Mobile drawer state
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   // Filter States
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedAction, setSelectedAction] = useState("ALL");
@@ -283,9 +286,16 @@ function AuditHistory() {
   if (!isAuditor) {
     return (
       <div className="app-layout">
-        <Sidebar />
+        <Sidebar
+          isOpen={mobileMenuOpen}
+          onClose={() => setMobileMenuOpen(false)}
+        />
         <section className="main-area">
-          <Topbar />
+          <Topbar
+            title="Audit History"
+            subtitle="Access restricted"
+            onMenuClick={() => setMobileMenuOpen(true)}
+          />
           <main className="main-content">
             <div className="access-denied-box">
               <h2>Access Denied</h2>
@@ -302,10 +312,17 @@ function AuditHistory() {
 
   return (
     <div className="app-layout">
-      <Sidebar />
+      <Sidebar
+        isOpen={mobileMenuOpen}
+        onClose={() => setMobileMenuOpen(false)}
+      />
 
       <section className="main-area">
-        <Topbar />
+        <Topbar
+          title="Audit History"
+          subtitle="Immutable transaction ledger records"
+          onMenuClick={() => setMobileMenuOpen(true)}
+        />
 
         <main className="main-content">
           {/* Header */}

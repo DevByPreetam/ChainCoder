@@ -52,6 +52,9 @@ function AuditorDashboard() {
   const [exportError, setExportError] = useState("");
   const [exportSuccess, setExportSuccess] = useState(false);
 
+  // Mobile drawer state
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   // Load all Auditor data
   async function loadData() {
     const newErrors = {};
@@ -174,9 +177,16 @@ function AuditorDashboard() {
   if (!isAuditor) {
     return (
       <div className="app-layout">
-        <Sidebar />
+        <Sidebar
+          isOpen={mobileMenuOpen}
+          onClose={() => setMobileMenuOpen(false)}
+        />
         <section className="main-area">
-          <Topbar />
+          <Topbar
+            title="Auditor Portal"
+            subtitle="Access restricted"
+            onMenuClick={() => setMobileMenuOpen(true)}
+          />
           <main className="main-content">
             <div className="access-denied-box">
               <h2>Access Denied</h2>
@@ -257,10 +267,17 @@ function AuditorDashboard() {
 
   return (
     <div className="app-layout">
-      <Sidebar />
+      <Sidebar
+        isOpen={mobileMenuOpen}
+        onClose={() => setMobileMenuOpen(false)}
+      />
 
       <section className="main-area">
-        <Topbar />
+        <Topbar
+          title="Auditor Portal"
+          subtitle="Multi-org ledger oversight & compliance"
+          onMenuClick={() => setMobileMenuOpen(true)}
+        />
 
         <main className="main-content">
           {/* Header */}

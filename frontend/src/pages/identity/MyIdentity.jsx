@@ -15,6 +15,7 @@ function MyIdentity() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     async function loadIdentity() {
@@ -38,12 +39,17 @@ function MyIdentity() {
 
   return (
     <div className="app-layout">
-
-      <Sidebar />
+      <Sidebar
+        isOpen={mobileMenuOpen}
+        onClose={() => setMobileMenuOpen(false)}
+      />
 
       <section className="main-area">
-
-        <Topbar />
+        <Topbar
+          title="My Blockchain Identity"
+          subtitle="Inspect your cryptographic credentials and W3C DID"
+          onMenuClick={() => setMobileMenuOpen(true)}
+        />
 
         <main className="main-content">
 
