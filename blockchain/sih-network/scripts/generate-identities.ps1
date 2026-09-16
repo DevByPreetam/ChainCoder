@@ -1,4 +1,4 @@
-# ============================================================
+﻿# ============================================================
 # ChainCoder - Fabric Identity & Genesis Generation Script
 # blockchain/sih-network/scripts/generate-identities.ps1
 #
@@ -22,10 +22,7 @@ param(
     [string]$FabricBinPath = ""
 )
 
-$ErrorActionPreference = "Continue"
-if (Test-Path Variable:\PSNativeCommandUseErrorActionPreference) {
-    $PSNativeCommandUseErrorActionPreference = $false
-}
+$ErrorActionPreference = "Stop"
 
 # ------------------------------------------------------------
 # 1. Robust Path Calculation
@@ -162,7 +159,6 @@ Wait-Port -Port 7054  -Name "BEL CA"
 Wait-Port -Port 8054  -Name "Auditor CA"
 Wait-Port -Port 9054  -Name "Contractor CA"
 Wait-Port -Port 10054 -Name "Orderer CA"
-Start-Sleep -Seconds 2
 Write-Host ""
 
 # ------------------------------------------------------------
@@ -245,13 +241,12 @@ $networkComposeFile = Join-Path $NetworkDir "docker\docker-compose-network.yaml"
 # ============================================================
 Write-Host "--- Generating BEL Organization (BELMSP) ---" -ForegroundColor Yellow
 
-$belOrgDir  = Join-Path $OrgsDir "peerOrganizations\bel.sih26125.local"
-$belCaCert  = Join-Path $OrgsDir "fabric-ca\bel\ca-cert.pem"
-$belTlsCert = Join-Path $OrgsDir "fabric-ca\bel\tls-cert.pem"
+$belOrgDir = Join-Path $OrgsDir "peerOrganizations\bel.sih26125.local"
+$belCaCert = Join-Path $OrgsDir "fabric-ca\bel\ca-cert.pem"
 $env:FABRIC_CA_CLIENT_HOME = Join-Path $NetworkDir ".ca-admin\bel"
 
 # Enroll CA bootstrap admin
-& $caClientExe enroll -u https://admin:adminpw@localhost:7054 --caname BELCA --tls.certfiles "$belTlsCert"
+& $caClientExe enroll -u https://admin:adminpw@localhost:7054 --caname BELCA --tls.certfiles "$belCaCert"
 if ($LASTEXITCODE -ne 0) { Write-Host "ERROR: Failed to enroll BEL CA admin." -ForegroundColor Red; exit 1 }
 
 # Register identities
@@ -263,18 +258,18 @@ $belUsers = @(
     @{ Name="manager"; Secret="managerpw"; Type="client" }
 )
 foreach ($id in $belUsers) {
-    & $caClientExe register --caname BELCA --id.name $id.Name --id.secret $id.Secret --id.type $id.Type --tls.certfiles "$belTlsCert" 2>$null
+    & $caClientExe register --caname BELCA --id.name $id.Name --id.secret $id.Secret --id.type $id.Type --tls.certfiles "$belCaCert" 2>$null
 }
 
 # Enroll peer0 (MSP)
 $belPeerMsp = Join-Path $belOrgDir "peers\peer0.bel.sih26125.local\msp"
-& $caClientExe enroll -u https://peer0:peer0pw@localhost:7054 --caname BELCA -M "$belPeerMsp" --tls.certfiles "$belTlsCert"
+& $caClientExe enroll -u https://peer0:peer0pw@localhost:7054 --caname BELCA -M "$belPeerMsp" --tls.certfiles "$belCaCert"
 if ($LASTEXITCODE -ne 0) { Write-Host "ERROR: Failed to enroll BEL peer0 MSP." -ForegroundColor Red; exit 1 }
 Write-NodeOUConfig -FilePath (Join-Path $belPeerMsp "config.yaml") -CaCertRelativePath "cacerts/localhost-7054-BELCA.pem"
 
 # Enroll peer0 (TLS)
 $belPeerTls = Join-Path $belOrgDir "peers\peer0.bel.sih26125.local\tls"
-& $caClientExe enroll -u https://peer0:peer0pw@localhost:7054 --caname BELCA -M "$belPeerTls" --enrollment.profile tls --csr.hosts "peer0.bel.sih26125.local,localhost" --tls.certfiles "$belTlsCert"
+& $caClientExe enroll -u https://peer0:peer0pw@localhost:7054 --caname BELCA -M "$belPeerTls" --enrollment.profile tls --csr.hosts "peer0.bel.sih26125.local,localhost" --tls.certfiles "$belCaCert"
 if ($LASTEXITCODE -ne 0) { Write-Host "ERROR: Failed to enroll BEL peer0 TLS." -ForegroundColor Red; exit 1 }
 
 # Map newly enrolled TLS keys dynamically
@@ -288,20 +283,20 @@ if ($belTlsCaCert) {
 
 # Enroll beladmin (MSP)
 $belAdminMsp = Join-Path $belOrgDir "users\beladmin\msp"
-& $caClientExe enroll -u https://beladmin:beladminpw@localhost:7054 --caname BELCA -M "$belAdminMsp" --tls.certfiles "$belTlsCert"
+& $caClientExe enroll -u https://beladmin:beladminpw@localhost:7054 --caname BELCA -M "$belAdminMsp" --tls.certfiles "$belCaCert"
 if ($LASTEXITCODE -ne 0) { Write-Host "ERROR: Failed to enroll beladmin." -ForegroundColor Red; exit 1 }
 Write-NodeOUConfig -FilePath (Join-Path $belAdminMsp "config.yaml") -CaCertRelativePath "cacerts/localhost-7054-BELCA.pem"
 
 # Enroll belchanneladmin (MSP)
 $belChanAdminMsp = Join-Path $NetworkDir ".msp-enroll\belchanneladmin\msp"
-& $caClientExe enroll -u https://belchanneladmin:belchanneladminpw@localhost:7054 --caname BELCA -M "$belChanAdminMsp" --tls.certfiles "$belTlsCert"
+& $caClientExe enroll -u https://belchanneladmin:belchanneladminpw@localhost:7054 --caname BELCA -M "$belChanAdminMsp" --tls.certfiles "$belCaCert"
 if ($LASTEXITCODE -ne 0) { Write-Host "ERROR: Failed to enroll belchanneladmin." -ForegroundColor Red; exit 1 }
 Write-NodeOUConfig -FilePath (Join-Path $belChanAdminMsp "config.yaml") -CaCertRelativePath "cacerts/localhost-7054-BELCA.pem"
 
 # Enroll employee & manager
 foreach ($u in @("employee", "manager")) {
     $uMsp = Join-Path $belOrgDir "users\$u\msp"
-    & $caClientExe enroll -u https://${u}:${u}pw@localhost:7054 --caname BELCA -M "$uMsp" --tls.certfiles "$belTlsCert"
+    & $caClientExe enroll -u https://${u}:${u}pw@localhost:7054 --caname BELCA -M "$uMsp" --tls.certfiles "$belCaCert"
     Write-NodeOUConfig -FilePath (Join-Path $uMsp "config.yaml") -CaCertRelativePath "cacerts/localhost-7054-BELCA.pem"
 }
 
@@ -326,12 +321,11 @@ Write-Host "  BEL Organization generated successfully." -ForegroundColor Green
 # ============================================================
 Write-Host "--- Generating Auditor Organization (AuditorMSP) ---" -ForegroundColor Yellow
 
-$audOrgDir  = Join-Path $OrgsDir "peerOrganizations\auditor.sih26125.local"
-$audCaCert  = Join-Path $OrgsDir "fabric-ca\auditor\ca-cert.pem"
-$audTlsCert = Join-Path $OrgsDir "fabric-ca\auditor\tls-cert.pem"
+$audOrgDir = Join-Path $OrgsDir "peerOrganizations\auditor.sih26125.local"
+$audCaCert = Join-Path $OrgsDir "fabric-ca\auditor\ca-cert.pem"
 $env:FABRIC_CA_CLIENT_HOME = Join-Path $NetworkDir ".ca-admin\auditor"
 
-& $caClientExe enroll -u https://admin:adminpw@localhost:8054 --caname AuditorCA --tls.certfiles "$audTlsCert"
+& $caClientExe enroll -u https://admin:adminpw@localhost:8054 --caname AuditorCA --tls.certfiles "$audCaCert"
 if ($LASTEXITCODE -ne 0) { Write-Host "ERROR: Failed to enroll Auditor CA admin." -ForegroundColor Red; exit 1 }
 
 $audUsers = @(
@@ -341,16 +335,16 @@ $audUsers = @(
     @{ Name="auditor"; Secret="auditorpw"; Type="client" }
 )
 foreach ($id in $audUsers) {
-    & $caClientExe register --caname AuditorCA --id.name $id.Name --id.secret $id.Secret --id.type $id.Type --tls.certfiles "$audTlsCert" 2>$null
+    & $caClientExe register --caname AuditorCA --id.name $id.Name --id.secret $id.Secret --id.type $id.Type --tls.certfiles "$audCaCert" 2>$null
 }
 
 $audPeerMsp = Join-Path $audOrgDir "peers\peer0.auditor.sih26125.local\msp"
-& $caClientExe enroll -u https://peer0:peer0pw@localhost:8054 --caname AuditorCA -M "$audPeerMsp" --tls.certfiles "$audTlsCert"
+& $caClientExe enroll -u https://peer0:peer0pw@localhost:8054 --caname AuditorCA -M "$audPeerMsp" --tls.certfiles "$audCaCert"
 if ($LASTEXITCODE -ne 0) { Write-Host "ERROR: Failed to enroll Auditor peer0 MSP." -ForegroundColor Red; exit 1 }
 Write-NodeOUConfig -FilePath (Join-Path $audPeerMsp "config.yaml") -CaCertRelativePath "cacerts/localhost-8054-AuditorCA.pem"
 
 $audPeerTls = Join-Path $audOrgDir "peers\peer0.auditor.sih26125.local\tls"
-& $caClientExe enroll -u https://peer0:peer0pw@localhost:8054 --caname AuditorCA -M "$audPeerTls" --enrollment.profile tls --csr.hosts "peer0.auditor.sih26125.local,localhost" --tls.certfiles "$audTlsCert"
+& $caClientExe enroll -u https://peer0:peer0pw@localhost:8054 --caname AuditorCA -M "$audPeerTls" --enrollment.profile tls --csr.hosts "peer0.auditor.sih26125.local,localhost" --tls.certfiles "$audCaCert"
 if ($LASTEXITCODE -ne 0) { Write-Host "ERROR: Failed to enroll Auditor peer0 TLS." -ForegroundColor Red; exit 1 }
 
 Sync-FreshTlsKeys -TlsDir $audPeerTls -ComposeFilePath $peerComposeFile -ServiceName "peer0.auditor.sih26125.local"
@@ -361,11 +355,11 @@ if ($audTlsCaCert) {
 }
 
 $audUserMsp = Join-Path $audOrgDir "users\auditor\msp"
-& $caClientExe enroll -u https://auditor:auditorpw@localhost:8054 --caname AuditorCA -M "$audUserMsp" --tls.certfiles "$audTlsCert"
+& $caClientExe enroll -u https://auditor:auditorpw@localhost:8054 --caname AuditorCA -M "$audUserMsp" --tls.certfiles "$audCaCert"
 Write-NodeOUConfig -FilePath (Join-Path $audUserMsp "config.yaml") -CaCertRelativePath "cacerts/localhost-8054-AuditorCA.pem"
 
 $audChanAdminMsp = Join-Path $NetworkDir ".msp-enroll\auditorchanneladmin\msp"
-& $caClientExe enroll -u https://auditorchanneladmin:auditorchanneladminpw@localhost:8054 --caname AuditorCA -M "$audChanAdminMsp" --tls.certfiles "$audTlsCert"
+& $caClientExe enroll -u https://auditorchanneladmin:auditorchanneladminpw@localhost:8054 --caname AuditorCA -M "$audChanAdminMsp" --tls.certfiles "$audCaCert"
 Write-NodeOUConfig -FilePath (Join-Path $audChanAdminMsp "config.yaml") -CaCertRelativePath "cacerts/localhost-8054-AuditorCA.pem"
 
 $audOrgMsp = Join-Path $audOrgDir "msp"
@@ -382,12 +376,11 @@ Write-Host "  Auditor Organization generated successfully." -ForegroundColor Gre
 # ============================================================
 Write-Host "--- Generating Contractor Organization (ContractorMSP) ---" -ForegroundColor Yellow
 
-$conOrgDir  = Join-Path $OrgsDir "peerOrganizations\contractor.sih26125.local"
-$conCaCert  = Join-Path $OrgsDir "fabric-ca\contractor\ca-cert.pem"
-$conTlsCert = Join-Path $OrgsDir "fabric-ca\contractor\tls-cert.pem"
+$conOrgDir = Join-Path $OrgsDir "peerOrganizations\contractor.sih26125.local"
+$conCaCert = Join-Path $OrgsDir "fabric-ca\contractor\ca-cert.pem"
 $env:FABRIC_CA_CLIENT_HOME = Join-Path $NetworkDir ".ca-admin\contractor"
 
-& $caClientExe enroll -u https://admin:adminpw@localhost:9054 --caname ContractorCA --tls.certfiles "$conTlsCert"
+& $caClientExe enroll -u https://admin:adminpw@localhost:9054 --caname ContractorCA --tls.certfiles "$conCaCert"
 if ($LASTEXITCODE -ne 0) { Write-Host "ERROR: Failed to enroll Contractor CA admin." -ForegroundColor Red; exit 1 }
 
 $conUsers = @(
@@ -397,16 +390,16 @@ $conUsers = @(
     @{ Name="contractoruser"; Secret="contractoruserpw"; Type="client" }
 )
 foreach ($id in $conUsers) {
-    & $caClientExe register --caname ContractorCA --id.name $id.Name --id.secret $id.Secret --id.type $id.Type --tls.certfiles "$conTlsCert" 2>$null
+    & $caClientExe register --caname ContractorCA --id.name $id.Name --id.secret $id.Secret --id.type $id.Type --tls.certfiles "$conCaCert" 2>$null
 }
 
 $conPeerMsp = Join-Path $conOrgDir "peers\peer0.contractor.sih26125.local\msp"
-& $caClientExe enroll -u https://peer0:peer0pw@localhost:9054 --caname ContractorCA -M "$conPeerMsp" --tls.certfiles "$conTlsCert"
+& $caClientExe enroll -u https://peer0:peer0pw@localhost:9054 --caname ContractorCA -M "$conPeerMsp" --tls.certfiles "$conCaCert"
 if ($LASTEXITCODE -ne 0) { Write-Host "ERROR: Failed to enroll Contractor peer0 MSP." -ForegroundColor Red; exit 1 }
 Write-NodeOUConfig -FilePath (Join-Path $conPeerMsp "config.yaml") -CaCertRelativePath "cacerts/localhost-9054-ContractorCA.pem"
 
 $conPeerTls = Join-Path $conOrgDir "peers\peer0.contractor.sih26125.local\tls"
-& $caClientExe enroll -u https://peer0:peer0pw@localhost:9054 --caname ContractorCA -M "$conPeerTls" --enrollment.profile tls --csr.hosts "peer0.contractor.sih26125.local,localhost" --tls.certfiles "$conTlsCert"
+& $caClientExe enroll -u https://peer0:peer0pw@localhost:9054 --caname ContractorCA -M "$conPeerTls" --enrollment.profile tls --csr.hosts "peer0.contractor.sih26125.local,localhost" --tls.certfiles "$conCaCert"
 if ($LASTEXITCODE -ne 0) { Write-Host "ERROR: Failed to enroll Contractor peer0 TLS." -ForegroundColor Red; exit 1 }
 
 Sync-FreshTlsKeys -TlsDir $conPeerTls -ComposeFilePath $peerComposeFile -ServiceName "peer0.contractor.sih26125.local"
@@ -417,15 +410,15 @@ if ($conTlsCaCert) {
 }
 
 $conAdminMsp = Join-Path $conOrgDir "users\contractoradmin\msp"
-& $caClientExe enroll -u https://contractoradmin:contractoradminpw@localhost:9054 --caname ContractorCA -M "$conAdminMsp" --tls.certfiles "$conTlsCert"
+& $caClientExe enroll -u https://contractoradmin:contractoradminpw@localhost:9054 --caname ContractorCA -M "$conAdminMsp" --tls.certfiles "$conCaCert"
 Write-NodeOUConfig -FilePath (Join-Path $conAdminMsp "config.yaml") -CaCertRelativePath "cacerts/localhost-9054-ContractorCA.pem"
 
 $conUserMsp = Join-Path $conOrgDir "users\contractoruser\msp"
-& $caClientExe enroll -u https://contractoruser:contractoruserpw@localhost:9054 --caname ContractorCA -M "$conUserMsp" --tls.certfiles "$conTlsCert"
+& $caClientExe enroll -u https://contractoruser:contractoruserpw@localhost:9054 --caname ContractorCA -M "$conUserMsp" --tls.certfiles "$conCaCert"
 Write-NodeOUConfig -FilePath (Join-Path $conUserMsp "config.yaml") -CaCertRelativePath "cacerts/localhost-9054-ContractorCA.pem"
 
 $conChanAdminMsp = Join-Path $NetworkDir ".msp-enroll\contractorchanneladmin\msp"
-& $caClientExe enroll -u https://contractorchanneladmin:contractorchanneladminpw@localhost:9054 --caname ContractorCA -M "$conChanAdminMsp" --tls.certfiles "$conTlsCert"
+& $caClientExe enroll -u https://contractorchanneladmin:contractorchanneladminpw@localhost:9054 --caname ContractorCA -M "$conChanAdminMsp" --tls.certfiles "$conCaCert"
 Write-NodeOUConfig -FilePath (Join-Path $conChanAdminMsp "config.yaml") -CaCertRelativePath "cacerts/localhost-9054-ContractorCA.pem"
 
 $conOrgMsp = Join-Path $conOrgDir "msp"
@@ -442,12 +435,11 @@ Write-Host "  Contractor Organization generated successfully." -ForegroundColor 
 # ============================================================
 Write-Host "--- Generating Orderer Organization (OrdererMSP) ---" -ForegroundColor Yellow
 
-$ordOrgDir  = Join-Path $OrgsDir "ordererOrganizations\sih26125.local"
-$ordCaCert  = Join-Path $OrgsDir "fabric-ca\orderer\ca-cert.pem"
-$ordTlsCert = Join-Path $OrgsDir "fabric-ca\orderer\tls-cert.pem"
+$ordOrgDir = Join-Path $OrgsDir "ordererOrganizations\sih26125.local"
+$ordCaCert = Join-Path $OrgsDir "fabric-ca\orderer\ca-cert.pem"
 $env:FABRIC_CA_CLIENT_HOME = Join-Path $NetworkDir ".ca-admin\orderer"
 
-& $caClientExe enroll -u https://admin:adminpw@localhost:10054 --caname OrdererCA --tls.certfiles "$ordTlsCert"
+& $caClientExe enroll -u https://admin:adminpw@localhost:10054 --caname OrdererCA --tls.certfiles "$ordCaCert"
 if ($LASTEXITCODE -ne 0) { Write-Host "ERROR: Failed to enroll Orderer CA admin." -ForegroundColor Red; exit 1 }
 
 $ordUsers = @(
@@ -457,15 +449,15 @@ $ordUsers = @(
     @{ Name="ordererAdmin"; Secret="ordererAdminpw"; Type="admin" }
 )
 foreach ($id in $ordUsers) {
-    & $caClientExe register --caname OrdererCA --id.name $id.Name --id.secret $id.Secret --id.type $id.Type --tls.certfiles "$ordTlsCert" 2>$null
+    & $caClientExe register --caname OrdererCA --id.name $id.Name --id.secret $id.Secret --id.type $id.Type --tls.certfiles "$ordCaCert" 2>$null
 }
 
 # Enroll Orderer Admin (MSP + TLS)
 $ordAdminMsp = Join-Path $ordOrgDir "users\Admin@sih26125.local\msp"
-& $caClientExe enroll -u https://ordererAdmin:ordererAdminpw@localhost:10054 --caname OrdererCA -M "$ordAdminMsp" --tls.certfiles "$ordTlsCert"
+& $caClientExe enroll -u https://ordererAdmin:ordererAdminpw@localhost:10054 --caname OrdererCA -M "$ordAdminMsp" --tls.certfiles "$ordCaCert"
 
 $ordAdminTls = Join-Path $ordOrgDir "users\Admin@sih26125.local\tls"
-& $caClientExe enroll -u https://ordererAdmin:ordererAdminpw@localhost:10054 --caname OrdererCA -M "$ordAdminTls" --enrollment.profile tls --csr.hosts "localhost" --tls.certfiles "$ordTlsCert"
+& $caClientExe enroll -u https://ordererAdmin:ordererAdminpw@localhost:10054 --caname OrdererCA -M "$ordAdminTls" --enrollment.profile tls --csr.hosts "localhost" --tls.certfiles "$ordCaCert"
 
 $adminKey = Get-ChildItem -Path (Join-Path $ordAdminTls "keystore") -Filter "*_sk" | Select-Object -First 1
 if ($adminKey) {
@@ -478,24 +470,15 @@ foreach ($name in @("orderer1", "orderer2", "orderer3")) {
     $oMsp = Join-Path $targetDir "msp"
     $oTls = Join-Path $targetDir "tls"
 
-    & $caClientExe enroll -u "https://${name}:${name}pw@localhost:10054" --caname OrdererCA -M "$oMsp" --tls.certfiles "$ordTlsCert"
-    & $caClientExe enroll -u "https://${name}:${name}pw@localhost:10054" --caname OrdererCA -M "$oTls" --enrollment.profile tls --csr.hosts "$name.sih26125.local,localhost" --tls.certfiles "$ordTlsCert"
+    & $caClientExe enroll -u "https://${name}:${name}pw@localhost:10054" --caname OrdererCA -M "$oMsp" --tls.certfiles "$ordCaCert"
+    & $caClientExe enroll -u "https://${name}:${name}pw@localhost:10054" --caname OrdererCA -M "$oTls" --enrollment.profile tls --csr.hosts "$name.sih26125.local,localhost" --tls.certfiles "$ordCaCert"
 
     Sync-FreshTlsKeys -TlsDir $oTls -ComposeFilePath $networkComposeFile -ServiceName "$name.sih26125.local"
 
     $oTlsCa = Get-ChildItem -Path (Join-Path $oTls "tlscacerts") -Filter "*.pem" | Select-Object -First 1
     if ($oTlsCa) {
-        $destCa = Join-Path $oTls "tlscacerts\tls-localhost-10054-OrdererCA.pem"
-        if ($oTlsCa.FullName -ne $destCa) {
-            Copy-Item -Path $oTlsCa.FullName -Destination $destCa -Force
-        }
+        Copy-Item -Path $oTlsCa.FullName -Destination (Join-Path $oTls "tlscacerts\tls-localhost-10054-OrdererCA.pem") -Force
     }
-
-    # Ensure local MSP has admincerts and NodeOU config
-    $oAdminDir = Join-Path $oMsp "admincerts"
-    New-Item -ItemType Directory -Force -Path $oAdminDir | Out-Null
-    Copy-Item -Path (Join-Path $ordAdminMsp "signcerts\cert.pem") -Destination (Join-Path $oAdminDir "Admin@sih26125.local-cert.pem") -Force
-    Write-NodeOUConfig -FilePath (Join-Path $oMsp "config.yaml") -CaCertRelativePath "cacerts/localhost-10054-OrdererCA.pem" -Enable $true
 }
 
 # Set up Orderer Org MSP
@@ -507,7 +490,7 @@ New-Item -ItemType Directory -Force -Path (Join-Path $ordOrgMsp "admincerts") | 
 Copy-Item -Path $ordCaCert -Destination (Join-Path $ordOrgMsp "cacerts\localhost-10054-OrdererCA.pem") -Force
 Copy-Item -Path $ordCaCert -Destination (Join-Path $ordOrgMsp "tlscacerts\tls-localhost-10054-OrdererCA.pem") -Force
 Copy-Item -Path (Join-Path $ordAdminMsp "signcerts\cert.pem") -Destination (Join-Path $ordOrgMsp "admincerts\Admin@sih26125.local-cert.pem") -Force
-Write-NodeOUConfig -FilePath (Join-Path $ordOrgMsp "config.yaml") -CaCertRelativePath "cacerts/localhost-10054-OrdererCA.pem" -Enable $true
+Write-NodeOUConfig -FilePath (Join-Path $ordOrgMsp "config.yaml") -CaCertRelativePath "cacerts/localhost-10054-OrdererCA.pem" -Enable $false
 
 # Ensure contractor peer's mounted orderer TLS CA cert exists
 $conPeerOrdererTlsCa = Join-Path $ordOrgMsp "tlscacerts\tls-localhost-10054-OrdererCA.pem"

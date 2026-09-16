@@ -1,4 +1,4 @@
-# ============================================================
+﻿# ============================================================
 # ChainCoder - Channel Creation & Peer Join Script
 # blockchain/sih-network/scripts/create-channel.ps1
 #
@@ -19,10 +19,7 @@ param(
     [string]$FabricBinPath = ""
 )
 
-$ErrorActionPreference = "Continue"
-if (Test-Path Variable:\PSNativeCommandUseErrorActionPreference) {
-    $PSNativeCommandUseErrorActionPreference = $false
-}
+$ErrorActionPreference = "Stop"
 
 # ------------------------------------------------------------
 # 1. Robust Path Calculation
@@ -201,8 +198,7 @@ function Join-And-Verify-Peer {
 
     # Verify membership
     $verifyList = & $script:peerExe channel list 2>&1
-    $verifyText = ($verifyList | Out-String)
-    if ($verifyText -notmatch "sihchannel") {
+    if ($verifyList -notmatch "sihchannel") {
         Write-Host "ERROR: Verification failed: $OrgName peer is NOT in sihchannel." -ForegroundColor Red
         Write-Host "Output: $verifyList" -ForegroundColor Gray
         exit 1
