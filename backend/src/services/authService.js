@@ -3,9 +3,9 @@
 const { AppError } = require('../utils/errors');
 const bcrypt = require('bcryptjs');
 const { generateToken } = require('../utils/auth');
+const { query, isDbConnected } = require('../config/db');
 
-// Temporary development users.
-// We will move these to a database later.
+// In-memory user cache / fallback
 const users = [
     {
         userId: 'BEL001',
@@ -52,9 +52,25 @@ const users = [
 ];
 
 async function login(userId, password) {
-    const user = users.find(
-        item => item.userId === userId
-    );
+    let user = null;
+
+    if (isDbConnected()) {
+        try {
+            const res = await query(
+                'SELECT user_id AS "userId", name, organization, role, password_hash AS "passwordHash" FROM users WHERE user_id = $1',
+                [userId]
+            );
+            if (res.rows.length > 0) {
+                user = res.rows[0];
+            }
+        } catch (dbErr) {
+            console.warn('DB query in login failed, falling back to cache:', dbErr.message);
+        }
+    }
+
+    if (!user) {
+        user = users.find(item => item.userId === userId);
+    }
 
     if (!user) {
         throw new Error('Invalid user ID or password');
@@ -80,6 +96,29 @@ async function login(userId, password) {
 
     if (!passwordValid) {
         throw new Error('Invalid user ID or password');
+    }
+
+    // Revocation status check on Fabric ledger and DB
+    if (user.status === 'REVOKED') {
+        const revokedErr = new Error('Identity has been revoked and cannot authenticate');
+        revokedErr.statusCode = 403;
+        revokedErr.errorCode = 'IDENTITY_REVOKED';
+        throw revokedErr;
+    }
+
+    try {
+        const { getIdentity } = require('./fabricService');
+        const ledgerIdentity = await getIdentity(user.userId, user.organization || 'BEL');
+        if (ledgerIdentity && ledgerIdentity.status === 'REVOKED') {
+            const revokedErr = new Error('Identity has been revoked on the Fabric ledger');
+            revokedErr.statusCode = 403;
+            revokedErr.errorCode = 'IDENTITY_REVOKED';
+            throw revokedErr;
+        }
+    } catch (fabricErr) {
+        if (fabricErr.errorCode === 'IDENTITY_REVOKED' || fabricErr.statusCode === 403) {
+            throw fabricErr;
+        }
     }
 
     const token = generateToken({
@@ -109,7 +148,7 @@ function listUsers() {
     }));
 }
 
-function enrollUser({ userId, name, organization, role, password }) {
+async function enrollUser({ userId, name, organization, role, password }) {
     if (!userId || !name || !organization || !role || !password) {
         throw new AppError(
             'userId, name, organization, role and password are required',
@@ -124,13 +163,29 @@ function enrollUser({ userId, name, organization, role, password }) {
         throw new AppError('A user with this ID already exists', 409, 'CONFLICT');
     }
 
+    const passwordHash = bcrypt.hashSync(password, 10);
     const user = {
         userId,
         name,
         organization,
         role,
-        passwordHash: bcrypt.hashSync(password, 10)
+        passwordHash
     };
+
+    if (isDbConnected()) {
+        try {
+            await query(
+                `INSERT INTO users (user_id, name, organization, role, password_hash)
+                 VALUES ($1, $2, $3, $4, $5)`,
+                [userId, name, organization, role, passwordHash]
+            );
+        } catch (dbErr) {
+            console.error('Failed to persist enrolled user to PostgreSQL:', dbErr.message);
+            if (dbErr.code === '23505') { // unique violation
+                throw new AppError('A user with this ID already exists', 409, 'CONFLICT');
+            }
+        }
+    }
 
     users.push(user);
 

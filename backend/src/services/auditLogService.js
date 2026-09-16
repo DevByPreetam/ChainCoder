@@ -1,6 +1,7 @@
 'use strict';
 
 const crypto = require('crypto');
+const { query, isDbConnected } = require('../config/db');
 
 const logs = [];
 const identityIds = new Set();
@@ -24,6 +25,41 @@ function rememberResource({ resourceType, resourceId }) {
         accessKeys.add(resourceId);
     }
 }
+
+async function loadAuditLogsFromDb() {
+    if (!isDbConnected()) return;
+    try {
+        const res = await query(`
+            SELECT 
+                id,
+                user_id AS "userId",
+                organization,
+                role,
+                action,
+                resource_type AS "resourceType",
+                resource_id AS "resourceId",
+                success,
+                transaction_id AS "transactionId",
+                ip_address AS "ipAddress",
+                message,
+                timestamp
+            FROM audit_logs
+            ORDER BY timestamp DESC
+            LIMIT 1000
+        `);
+
+        for (const row of res.rows) {
+            if (!logs.some(l => l.id === row.id)) {
+                logs.push(row);
+                rememberResource(row);
+            }
+        }
+    } catch (err) {
+        console.warn('Failed to load audit logs from DB:', err.message);
+    }
+}
+
+setTimeout(loadAuditLogsFromDb, 1500);
 
 function recordAuditLog({
     userId,
@@ -54,6 +90,30 @@ function recordAuditLog({
 
     logs.push(entry);
     rememberResource(entry);
+
+    if (isDbConnected()) {
+        query(
+            `INSERT INTO audit_logs (
+                id, user_id, organization, role, action, resource_type,
+                resource_id, success, transaction_id, ip_address, message, timestamp
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+            [
+                entry.id,
+                entry.userId,
+                entry.organization,
+                entry.role,
+                entry.action,
+                entry.resourceType,
+                entry.resourceId,
+                entry.success,
+                entry.transactionId,
+                entry.ipAddress,
+                entry.message,
+                entry.timestamp
+            ]
+        ).catch(err => console.error('Failed to persist audit log to DB:', err.message));
+    }
+
     return entry;
 }
 
@@ -94,18 +154,33 @@ function getKnownAssetIds() {
 }
 
 function getKnownAccessKeys() {
-    return Array.from(accessKeys).map((key) => {
-        const [identityId, assetId] = key.split('::');
-        return { identityId, assetId, key };
-    });
+    return Array.from(accessKeys);
 }
 
 function accessResourceId(identityId, assetId) {
-    return `${identityId}::${assetId}`;
+    return `${identityId}:${assetId}`;
+}
+
+function escapeCsvField(value) {
+    if (value === null || value === undefined) {
+        return '';
+    }
+
+    const stringValue = String(value);
+
+    if (
+        stringValue.includes(',') ||
+        stringValue.includes('"') ||
+        stringValue.includes('\n')
+    ) {
+        return `"${stringValue.replace(/"/g, '""')}"`;
+    }
+
+    return stringValue;
 }
 
 function toCsv(entries) {
-    const header = [
+    const headers = [
         'id',
         'timestamp',
         'userId',
@@ -115,19 +190,16 @@ function toCsv(entries) {
         'resourceType',
         'resourceId',
         'success',
-        'transactionId'
+        'transactionId',
+        'ipAddress',
+        'message'
     ];
 
     const rows = entries.map((entry) =>
-        header
-            .map((field) => {
-                const value = entry[field] == null ? '' : String(entry[field]);
-                return `"${value.replace(/"/g, '""')}"`;
-            })
-            .join(',')
+        headers.map((header) => escapeCsvField(entry[header])).join(',')
     );
 
-    return [header.join(','), ...rows].join('\n');
+    return [headers.join(','), ...rows].join('\n');
 }
 
 module.exports = {
@@ -138,5 +210,6 @@ module.exports = {
     getKnownAssetIds,
     getKnownAccessKeys,
     accessResourceId,
-    toCsv
+    toCsv,
+    loadAuditLogsFromDb
 };

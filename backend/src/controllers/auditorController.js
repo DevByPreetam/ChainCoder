@@ -179,6 +179,121 @@ async function fetchAuditorAssetHistory(req, res) {
     }
 }
 
+let cachedBlockchainActivities = null;
+let lastActivitiesCacheTime = 0;
+const CACHE_TTL_MS = 10000;
+
+async function getRecentBlockchainActivities() {
+    const now = Date.now();
+    if (cachedBlockchainActivities && now - lastActivitiesCacheTime < CACHE_TTL_MS) {
+        return cachedBlockchainActivities;
+    }
+
+    const defaultAssets = [
+        'AST-FINAL-AUDIT-01',
+        'AST-NFT-99',
+        'AST-001',
+        'AST-002',
+        'ASSET001',
+        'ASSET002',
+        'ASSET003'
+    ];
+
+    const knownIds = getKnownAssetIds();
+    const allAssetIds = Array.from(new Set([...defaultAssets, ...knownIds]));
+    const events = [];
+
+    for (const astId of allAssetIds) {
+        try {
+            const history = await getAssetHistory(astId, 'BEL');
+            if (Array.isArray(history) && history.length > 0) {
+                for (let i = history.length - 1; i >= 0; i--) {
+                    const rec = history[i];
+                    const val = rec.value || {};
+                    let action = 'Asset Transaction';
+                    let resource = astId;
+
+                    if (i === history.length - 1) {
+                        action = val.tokenStandard ? 'NFT Minted' : 'Asset Minted';
+                        resource = val.name ? `${val.name} (${astId})` : astId;
+                    } else {
+                        const prev = history[i + 1]?.value || {};
+                        if (val.owner && prev.owner && val.owner !== prev.owner) {
+                            action = 'Asset Transferred';
+                            resource = `${astId} ➔ ${val.owner}`;
+                        } else if (val.documentCID && val.documentCID !== prev.documentCID) {
+                            action = 'Document Stored (IPFS)';
+                            resource = astId;
+                        } else {
+                            action = 'Asset Updated';
+                            resource = astId;
+                        }
+                    }
+
+                    events.push({
+                        id: rec.txId || `tx-${astId}-${i}`,
+                        action,
+                        resource,
+                        status: val.status === 'ACTIVE' ? 'SUCCESS' : (val.status || 'SUCCESS'),
+                        timestamp: rec.timestamp || new Date().toISOString(),
+                        txId: rec.txId || null,
+                        actor: val.owner || 'BEL',
+                        organization: val.ownerOrganization || 'BEL',
+                        type: 'BLOCKCHAIN'
+                    });
+                }
+            }
+        } catch (_) {
+            // Silently ignore individual asset errors
+        }
+    }
+
+    cachedBlockchainActivities = events;
+    lastActivitiesCacheTime = now;
+    return events;
+}
+
+async function fetchRecentActivities(req, res) {
+    try {
+        const blockchainEvents = await getRecentBlockchainActivities();
+        const auditLogs = getAuditLogs();
+
+        const sessionEvents = auditLogs.map((log) => ({
+            id: log.id,
+            action: log.action === 'LOGIN' ? 'Identity Login' : (log.action ? log.action.replace(/_/g, ' ') : 'Activity Logged'),
+            resource: log.resourceId || log.resourceType || 'System',
+            status: log.success ? 'SUCCESS' : 'FAILED',
+            timestamp: log.timestamp,
+            txId: log.transactionId || null,
+            actor: log.userId || log.organization,
+            organization: log.organization,
+            type: 'AUDIT'
+        }));
+
+        const combined = [...sessionEvents, ...blockchainEvents];
+
+        const seenTx = new Set();
+        const uniqueEvents = [];
+        for (const ev of combined) {
+            if (ev.txId) {
+                if (seenTx.has(ev.txId)) {
+                    continue;
+                }
+                seenTx.add(ev.txId);
+            }
+            uniqueEvents.push(ev);
+        }
+
+        uniqueEvents.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+        const activities = uniqueEvents.slice(0, 15);
+        return sendSuccess(res, { activities });
+    } catch (error) {
+        console.error('Fetch recent activities error:', error);
+        return handleControllerError(res, error, 'Unable to fetch recent activities');
+    }
+}
+
 module.exports = {
     fetchAuditorIdentity,
     listAuditIdentities,
@@ -187,5 +302,6 @@ module.exports = {
     listAuditAccessRequests,
     listAuditTransactions,
     exportAuditLog,
-    fetchAuditorAssetHistory
+    fetchAuditorAssetHistory,
+    fetchRecentActivities
 };

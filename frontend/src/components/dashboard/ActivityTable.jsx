@@ -1,34 +1,22 @@
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 
 function ActivityTable({ activities = [] }) {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
-  const defaultActivities = [
-    {
-      action: "Identity Registered",
-      resource: "BEL001",
-      status: "SUCCESS",
-      time: "Today, 10:42 AM",
-    },
-    {
-      action: "Asset Minted",
-      resource: "ASSET001",
-      status: "SUCCESS",
-      time: "Today, 09:18 AM",
-    },
-    {
-      action: "Access Granted",
-      resource: "CON001 ➔ ASSET001",
-      status: "SUCCESS",
-      time: "Yesterday, 04:32 PM",
-    },
-  ];
+  const isAuditor = user?.organization === "Auditor" && user?.role === "Auditor";
 
-  const displayActivities = activities.length > 0 ? activities : defaultActivities;
+  const handleViewAll = () => {
+    if (isAuditor) {
+      navigate("/audit-history");
+    } else {
+      navigate("/assets");
+    }
+  };
 
   return (
     <div className="dashboard-section">
-
       <div className="section-header">
         <div>
           <h3>Recent Blockchain Activity</h3>
@@ -37,48 +25,72 @@ function ActivityTable({ activities = [] }) {
 
         <button
           className="view-all-button"
-          onClick={() => navigate("/audit-history")}
+          onClick={handleViewAll}
         >
           View All
         </button>
       </div>
-  
-        <div className="activity-table-wrapper">
-          <table className="activity-table">
-  
-            <thead>
-              <tr>
-                <th>Action</th>
-                <th>Resource</th>
-                <th>Status</th>
-                <th>Time</th>
-              </tr>
-            </thead>
-  
-            <tbody>
-              {displayActivities.map((activity, index) => (
-                <tr key={index}>
-                  <td>{activity.action}</td>
-                  <td>{activity.resource}</td>
-  
+
+      <div className="activity-table-wrapper">
+        <table className="activity-table">
+          <thead>
+            <tr>
+              <th>Action</th>
+              <th>Resource</th>
+              <th>Status</th>
+              <th>Time</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {activities.length > 0 ? (
+              activities.map((activity, index) => (
+                <tr key={activity.txId || index} title={activity.txId ? `TxID: ${activity.txId}` : undefined}>
+                  <td>
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                      <span>{activity.action}</span>
+                      {activity.txId && (
+                        <span
+                          style={{
+                            fontSize: "9px",
+                            padding: "1px 4px",
+                            borderRadius: "3px",
+                            background: "#1e293b",
+                            color: "#94a3b8",
+                            fontFamily: "monospace",
+                          }}
+                          title={`Fabric TxID: ${activity.txId}`}
+                        >
+                          tx
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                  <td style={{ maxWidth: "280px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {activity.resource}
+                  </td>
                   <td>
                     <span className="status-badge">
                       {activity.status}
                     </span>
                   </td>
-  
                   <td className="activity-time">
                     {activity.time}
                   </td>
                 </tr>
-              ))}
-            </tbody>
-  
-          </table>
-        </div>
-  
+              ))
+            ) : (
+              <tr>
+                <td colSpan="4" style={{ textAlign: "center", padding: "32px 16px", color: "#64748b", fontSize: "12px" }}>
+                  No recent blockchain activity recorded.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
       </div>
-    );
-  }
-  
-  export default ActivityTable;
+    </div>
+  );
+}
+
+export default ActivityTable;

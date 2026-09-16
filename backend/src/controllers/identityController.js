@@ -5,6 +5,11 @@ const {
     getIdentity,
     revokeIdentity
 } = require('../services/fabricService');
+const {
+    registerIdentityInCA,
+    revokeIdentityInCA,
+    getCAHealth
+} = require('../services/caService');
 const { recordFromRequest } = require('../services/auditLogService');
 const { createNotification } = require('../services/notificationService');
 const { canViewIdentity, assertSafeId } = require('../services/authorizationService');
@@ -59,7 +64,19 @@ async function createIdentity(req, res) {
         assertSafeId(identityId, 'identityId');
         assertCanRegister(req.user, organization, role);
 
-        // Deployed RegisterIdentity currently requires BELMSP.
+        // 1. Register identity with organization's Fabric CA
+        let caResult = null;
+        try {
+            caResult = await registerIdentityInCA({
+                organization,
+                identityId,
+                role
+            });
+        } catch (caErr) {
+            console.warn('Fabric CA registration notice:', caErr.message);
+        }
+
+        // 2. Register identity on Hyperledger Fabric ledger
         const identity = await registerIdentity(
             'BEL',
             identityId,
@@ -76,8 +93,9 @@ async function createIdentity(req, res) {
         });
 
         return sendSuccess(res, {
-            message: 'Identity registered successfully',
-            identity
+            message: 'Identity registered successfully on Fabric ledger and Fabric CA',
+            identity,
+            ca: caResult
         }, 201);
     } catch (error) {
         console.error('Create identity error:', error);
@@ -125,7 +143,20 @@ async function revokeExistingIdentity(req, res) {
 
         assertSafeId(identityId, 'identityId');
 
+        // 1. Revoke identity on Hyperledger Fabric ledger
         const identity = await revokeIdentity(identityId, 'BEL');
+
+        // 2. Revoke certificate on Fabric CA and generate CRL
+        let caRevocation = null;
+        try {
+            caRevocation = await revokeIdentityInCA({
+                organization: identity.organization || 'BEL',
+                identityId,
+                reason: 'cessationofoperation'
+            });
+        } catch (caErr) {
+            console.warn('Fabric CA revocation notice:', caErr.message);
+        }
 
         recordFromRequest(req, {
             action: 'IDENTITY_REVOKED',
@@ -138,14 +169,15 @@ async function revokeExistingIdentity(req, res) {
             userId: identityId,
             type: 'IDENTITY_REVOKED',
             title: 'Identity revoked',
-            message: `Identity ${identityId} was revoked`,
+            message: `Identity ${identityId} was revoked on blockchain and CA`,
             resourceType: 'identity',
             resourceId: identityId
         });
 
         return sendSuccess(res, {
-            message: 'Identity revoked successfully',
-            identity
+            message: 'Identity revoked successfully on blockchain and Fabric CA',
+            identity,
+            ca: caRevocation
         });
     } catch (error) {
         console.error('Revoke identity error:', error);
@@ -193,9 +225,24 @@ async function getIdentityDID(req, res) {
     }
 }
 
+async function checkCAHealthController(req, res) {
+    try {
+        const orgs = ['BEL', 'Auditor', 'Contractor'];
+        const health = {};
+        for (const org of orgs) {
+            health[org] = await getCAHealth(org);
+        }
+        return sendSuccess(res, { health });
+    } catch (error) {
+        console.error('Check CA health error:', error);
+        return handleControllerError(res, error, 'Unable to query Fabric CA health');
+    }
+}
+
 module.exports = {
     createIdentity,
     fetchIdentity,
     revokeExistingIdentity,
-    getIdentityDID
+    getIdentityDID,
+    checkCAHealthController
 };

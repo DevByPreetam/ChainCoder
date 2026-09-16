@@ -124,6 +124,15 @@ module.exports = class SIHContract extends Contract {
             Buffer.from(identityId)
         );
 
+        // Emit Fabric Transaction Event
+        ctx.stub.setEvent('IdentityRegistered', Buffer.from(JSON.stringify({
+            identityId,
+            organization,
+            role,
+            did,
+            timestamp
+        })));
+
         return JSON.stringify(identity);
     }
 
@@ -368,6 +377,15 @@ module.exports = class SIHContract extends Contract {
             Buffer.from(JSON.stringify(identity))
         );
 
+        // Emit Fabric Transaction Event
+        ctx.stub.setEvent('IdentityRevoked', Buffer.from(JSON.stringify({
+            identityId,
+            organization: identity.organization,
+            status: 'REVOKED',
+            revokedBy: ctx.clientIdentity.getMSPID(),
+            timestamp: identity.updatedAt
+        })));
+
         return JSON.stringify(identity);
     }
 
@@ -461,6 +479,16 @@ module.exports = class SIHContract extends Contract {
             key,
             Buffer.from(JSON.stringify(access))
         );
+
+        // Emit Fabric Transaction Event
+        ctx.stub.setEvent('AccessGranted', Buffer.from(JSON.stringify({
+            accessId,
+            identityId,
+            assetId,
+            grantedTo,
+            permission,
+            timestamp
+        })));
 
         return JSON.stringify(access);
     }
@@ -568,6 +596,14 @@ module.exports = class SIHContract extends Contract {
             Buffer.from(JSON.stringify(access))
         );
 
+        // Emit Fabric Transaction Event
+        ctx.stub.setEvent('AccessRevoked', Buffer.from(JSON.stringify({
+            identityId,
+            assetId,
+            revokedBy: callerMSP,
+            timestamp: access.updatedAt
+        })));
+
         return JSON.stringify(access);
     }
 
@@ -661,6 +697,16 @@ module.exports = class SIHContract extends Contract {
             key,
             Buffer.from(JSON.stringify(asset))
         );
+
+        // Emit Fabric Transaction Event
+        ctx.stub.setEvent('AssetMinted', Buffer.from(JSON.stringify({
+            assetId,
+            name,
+            assetType,
+            owner,
+            tokenId: asset.tokenId,
+            timestamp
+        })));
 
         return JSON.stringify(asset);
     }
@@ -766,6 +812,14 @@ async UpdateAssetDocument(
         key,
         Buffer.from(JSON.stringify(asset))
     );
+
+    // Emit Fabric Transaction Event
+    ctx.stub.setEvent('AssetDocumentUpdated', Buffer.from(JSON.stringify({
+        assetId,
+        documentHash,
+        documentCID,
+        timestamp: asset.updatedAt
+    })));
 
     return JSON.stringify(asset);
 }
@@ -896,6 +950,14 @@ async UpdateAssetDocument(
             Buffer.from(JSON.stringify(asset))
         );
 
+        // Emit Fabric Transaction Event
+        ctx.stub.setEvent('AssetTransferred', Buffer.from(JSON.stringify({
+            assetId,
+            previousOwner: asset.owner,
+            newOwner,
+            timestamp: asset.updatedAt
+        })));
+
         return JSON.stringify(asset);
     }
 
@@ -976,5 +1038,188 @@ async UpdateAssetDocument(
         }
 
         return JSON.stringify(history);
+    }
+
+    // ============================================================
+    // PRIVATE DATA COLLECTIONS (PDC)
+    // ============================================================
+
+    // ------------------------------------------------------------
+    // PUT IDENTITY KYC DETAILS (identityKycDetails PDC)
+    // ------------------------------------------------------------
+
+    async PutIdentityKycDetails(ctx, identityId, fallbackKycData) {
+        const callerMSP = this.requireOrganization(ctx, ['BELMSP', 'AuditorMSP']);
+
+        if (!identityId) {
+            throw new Error('identityId is required');
+        }
+
+        const exists = await this.identityExists(ctx, identityId);
+        if (!exists) {
+            throw new Error(`Identity ${identityId} does not exist`);
+        }
+
+        const transientMap = ctx.stub.getTransient();
+        let kycPayload = null;
+
+        if (transientMap && transientMap.has('kycData')) {
+            kycPayload = transientMap.get('kycData').toString('utf8');
+        } else if (transientMap && transientMap.has('transient')) {
+            kycPayload = transientMap.get('transient').toString('utf8');
+        } else if (fallbackKycData) {
+            kycPayload = typeof fallbackKycData === 'string' ? fallbackKycData : JSON.stringify(fallbackKycData);
+        } else {
+            throw new Error('Transient kycData or fallbackKycData is required');
+        }
+
+        const kycRecord = {
+            identityId,
+            kycData: JSON.parse(kycPayload),
+            updatedBy: callerMSP,
+            updatedAt: new Date().toISOString()
+        };
+
+        await ctx.stub.putPrivateData(
+            'identityKycDetails',
+            identityId,
+            Buffer.from(JSON.stringify(kycRecord))
+        );
+
+        ctx.stub.setEvent('IdentityKycUpdated', Buffer.from(JSON.stringify({
+            identityId,
+            updatedBy: callerMSP,
+            timestamp: kycRecord.updatedAt
+        })));
+
+        return JSON.stringify({
+            success: true,
+            identityId,
+            collection: 'identityKycDetails',
+            updatedBy: callerMSP
+        });
+    }
+
+    // ------------------------------------------------------------
+    // GET IDENTITY KYC DETAILS (identityKycDetails PDC)
+    // ------------------------------------------------------------
+
+    async GetIdentityKycDetails(ctx, identityId) {
+        this.requireOrganization(ctx, ['BELMSP', 'AuditorMSP']);
+
+        if (!identityId) {
+            throw new Error('identityId is required');
+        }
+
+        const data = await ctx.stub.getPrivateData('identityKycDetails', identityId);
+
+        if (!data || data.length === 0) {
+            throw new Error(`No private KYC details found for identity ${identityId}`);
+        }
+
+        return data.toString('utf8');
+    }
+
+    // ------------------------------------------------------------
+    // PUT ASSET PRIVATE DETAILS (assetDocumentDetails PDC)
+    // ------------------------------------------------------------
+
+    async PutAssetPrivateDetails(ctx, assetId, fallbackDetails) {
+        const callerMSP = this.requireOrganization(ctx, ['BELMSP', 'AuditorMSP', 'ContractorMSP']);
+
+        if (!assetId) {
+            throw new Error('assetId is required');
+        }
+
+        const exists = await this.assetExists(ctx, assetId);
+        if (!exists) {
+            throw new Error(`Asset ${assetId} does not exist`);
+        }
+
+        const transientMap = ctx.stub.getTransient();
+        let detailsPayload = null;
+
+        if (transientMap && transientMap.has('assetDetails')) {
+            detailsPayload = transientMap.get('assetDetails').toString('utf8');
+        } else if (transientMap && transientMap.has('transient')) {
+            detailsPayload = transientMap.get('transient').toString('utf8');
+        } else if (fallbackDetails) {
+            detailsPayload = typeof fallbackDetails === 'string' ? fallbackDetails : JSON.stringify(fallbackDetails);
+        } else {
+            throw new Error('Transient assetDetails or fallbackDetails is required');
+        }
+
+        const privateRecord = {
+            assetId,
+            details: JSON.parse(detailsPayload),
+            updatedBy: callerMSP,
+            updatedAt: new Date().toISOString()
+        };
+
+        await ctx.stub.putPrivateData(
+            'assetDocumentDetails',
+            assetId,
+            Buffer.from(JSON.stringify(privateRecord))
+        );
+
+        ctx.stub.setEvent('AssetPrivateDetailsUpdated', Buffer.from(JSON.stringify({
+            assetId,
+            updatedBy: callerMSP,
+            timestamp: privateRecord.updatedAt
+        })));
+
+        return JSON.stringify({
+            success: true,
+            assetId,
+            collection: 'assetDocumentDetails',
+            updatedBy: callerMSP
+        });
+    }
+
+    // ------------------------------------------------------------
+    // GET ASSET PRIVATE DETAILS (assetDocumentDetails PDC)
+    // ------------------------------------------------------------
+
+    async GetAssetPrivateDetails(ctx, assetId) {
+        this.requireOrganization(ctx, ['BELMSP', 'AuditorMSP', 'ContractorMSP']);
+
+        if (!assetId) {
+            throw new Error('assetId is required');
+        }
+
+        const data = await ctx.stub.getPrivateData('assetDocumentDetails', assetId);
+
+        if (!data || data.length === 0) {
+            throw new Error(`No private document details found for asset ${assetId}`);
+        }
+
+        return data.toString('utf8');
+    }
+
+    // ============================================================
+    // MULTI-PARTY ENDORSEMENT HELPER
+    // ============================================================
+
+    async EndorseTransaction(ctx, txType, targetId) {
+        const callerMSP = this.requireOrganization(ctx, ['BELMSP', 'AuditorMSP']);
+
+        if (!txType || !targetId) {
+            throw new Error('txType and targetId are required');
+        }
+
+        const timestamp = new Date().toISOString();
+        const endorsement = {
+            txType,
+            targetId,
+            endorserMSP: callerMSP,
+            timestamp
+        };
+
+        ctx.stub.setEvent('TransactionEndorsed', Buffer.from(JSON.stringify(endorsement)));
+
+        return JSON.stringify({
+            success: true,
+            endorsement
+        });
     }
 }

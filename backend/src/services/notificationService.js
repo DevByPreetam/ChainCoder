@@ -2,8 +2,42 @@
 
 const crypto = require('crypto');
 const { listUsers } = require('./authService');
+const { query, isDbConnected } = require('../config/db');
 
 const notifications = [];
+
+async function loadNotificationsFromDb() {
+    if (!isDbConnected()) return;
+    try {
+        const res = await query(`
+            SELECT 
+                id,
+                user_id AS "userId",
+                organization,
+                type,
+                title,
+                message,
+                resource_type AS "resourceType",
+                resource_id AS "resourceId",
+                read,
+                read_at AS "readAt",
+                created_at AS "createdAt"
+            FROM notifications
+            ORDER BY created_at DESC
+            LIMIT 500
+        `);
+
+        for (const row of res.rows) {
+            if (!notifications.some(n => n.id === row.id)) {
+                notifications.push(row);
+            }
+        }
+    } catch (err) {
+        console.warn('Failed to load notifications from DB:', err.message);
+    }
+}
+
+setTimeout(loadNotificationsFromDb, 1500);
 
 function createNotification({
     userId,
@@ -32,6 +66,27 @@ function createNotification({
     };
 
     notifications.push(notification);
+
+    if (isDbConnected()) {
+        query(
+            `INSERT INTO notifications (
+                id, user_id, organization, type, title, message, resource_type, resource_id, read, created_at
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+            [
+                notification.id,
+                notification.userId,
+                notification.organization,
+                notification.type,
+                notification.title,
+                notification.message,
+                notification.resourceType,
+                notification.resourceId,
+                notification.read,
+                notification.createdAt
+            ]
+        ).catch(err => console.error('Failed to persist notification to DB:', err.message));
+    }
+
     return notification;
 }
 
@@ -81,8 +136,17 @@ function markNotificationRead(notificationId, userId) {
         throw error;
     }
 
+    const now = new Date().toISOString();
     notification.read = true;
-    notification.readAt = new Date().toISOString();
+    notification.readAt = now;
+
+    if (isDbConnected()) {
+        query(
+            `UPDATE notifications SET read = TRUE, read_at = $1 WHERE id = $2`,
+            [now, notificationId]
+        ).catch(err => console.error('Failed to update notification in DB:', err.message));
+    }
+
     return notification;
 }
 
@@ -92,5 +156,6 @@ module.exports = {
     notifyRoles,
     getUnreadCountForUser,
     getNotificationsForUser,
-    markNotificationRead
+    markNotificationRead,
+    loadNotificationsFromDb
 };

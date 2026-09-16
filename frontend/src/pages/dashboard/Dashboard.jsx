@@ -9,13 +9,58 @@ import { getAsset } from "../../services/assetService";
 import { getAccess } from "../../services/accessService";
 import { getPendingAccessRequests } from "../../services/accessRequestService";
 import { getNotifications } from "../../services/notificationService";
-import { getAuditorTransactions } from "../../services/auditorService";
+import { getAuditorTransactions, getRecentActivities } from "../../services/auditorService";
 
 import "../../styles/layout.css";
 import "../../styles/dashboard.css";
 
-const KNOWN_ASSETS = ["ASSET001", "ASSET002", "ASSET003", "AST-002"];
+const KNOWN_ASSETS = [
+  "AST-FINAL-AUDIT-01",
+  "AST-NFT-99",
+  "AST-001",
+  "AST-002",
+  "ASSET001",
+  "ASSET002",
+  "ASSET003",
+];
 const KNOWN_IDENTITIES = ["BEL001", "BEL002", "BEL003", "AUD001", "CON001", "CON002"];
+
+function formatActivityTime(isoString) {
+  if (!isoString) return "Recently";
+  const date = new Date(isoString);
+  if (isNaN(date.getTime())) return "Recently";
+
+  const now = new Date();
+  const isToday =
+    date.getDate() === now.getDate() &&
+    date.getMonth() === now.getMonth() &&
+    date.getFullYear() === now.getFullYear();
+
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const isYesterday =
+    date.getDate() === yesterday.getDate() &&
+    date.getMonth() === yesterday.getMonth() &&
+    date.getFullYear() === yesterday.getFullYear();
+
+  const timeStr = date.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  if (isToday) {
+    return `Today, ${timeStr}`;
+  }
+  if (isYesterday) {
+    return `Yesterday, ${timeStr}`;
+  }
+
+  const dateStr = date.toLocaleDateString([], {
+    day: "numeric",
+    month: "short",
+  });
+  return `${dateStr}, ${timeStr}`;
+}
 
 function Dashboard() {
   const { user } = useAuth();
@@ -86,20 +131,38 @@ function Dashboard() {
           // If role cannot view pending requests, leave 0
         }
 
-        // 4. Blockchain Events & Recent Activity
+        // 4. Blockchain Events & Recent Activity (Real Fabric ledger + live system activity)
         let recentActs = [];
         let eventCount = 0;
 
-        if (user?.organization === "Auditor" && user?.role === "Auditor") {
+        try {
+          const acts = await getRecentActivities();
+          if (Array.isArray(acts) && acts.length > 0) {
+            eventCount = acts.length;
+            recentActs = acts.slice(0, 7).map((t) => ({
+              action: t.action || "Blockchain Transaction",
+              resource: t.resource || "Hyperledger Fabric",
+              status: t.status || "SUCCESS",
+              time: formatActivityTime(t.timestamp),
+              txId: t.txId,
+            }));
+          }
+        } catch (err) {
+          console.warn("Could not fetch recent activities from /api/audit/recent:", err);
+        }
+
+        // Fallback for auditor transactions if recent activities empty
+        if (recentActs.length === 0 && user?.organization === "Auditor" && user?.role === "Auditor") {
           try {
             const txs = await getAuditorTransactions();
             if (Array.isArray(txs)) {
-              eventCount = txs.length;
-              recentActs = txs.slice(0, 5).map((t) => ({
+              eventCount = Math.max(eventCount, txs.length);
+              recentActs = txs.slice(0, 7).map((t) => ({
                 action: t.action ? t.action.replace(/_/g, " ") : "Transaction Executed",
                 resource: t.resourceId || t.resourceType || "Hyperledger Fabric",
                 status: t.success ? "SUCCESS" : "FAILED",
-                time: t.timestamp ? new Date(t.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "Recently",
+                time: formatActivityTime(t.timestamp),
+                txId: t.transactionId || null,
               }));
             }
           } catch {
@@ -107,17 +170,18 @@ function Dashboard() {
           }
         }
 
-        // Fallback for non-auditors or if empty: use real-time notification stream
+        // Fallback to notifications if still empty
         if (recentActs.length === 0) {
           try {
             const notifs = await getNotifications();
             if (Array.isArray(notifs)) {
               eventCount = Math.max(eventCount, notifs.length);
-              recentActs = notifs.slice(0, 5).map((n) => ({
+              recentActs = notifs.slice(0, 7).map((n) => ({
                 action: n.title || n.type?.replace(/_/g, " ") || "Blockchain Update",
                 resource: n.resourceId || n.resourceType || n.message || "Ledger",
                 status: "SUCCESS",
-                time: n.createdAt ? new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "Recently",
+                time: formatActivityTime(n.createdAt),
+                txId: null,
               }));
             }
           } catch {

@@ -6,7 +6,8 @@ const {
     createIdentity,
     fetchIdentity,
     revokeExistingIdentity,
-    getIdentityDID
+    getIdentityDID,
+    checkCAHealthController
 } = require('../controllers/identityController');
 
 const {
@@ -16,6 +17,12 @@ const {
 } = require('../middleware/authMiddleware');
 
 const router = express.Router();
+
+router.get(
+    '/ca/health',
+    authenticate,
+    checkCAHealthController
+);
 
 router.post(
     '/',

@@ -1,0 +1,20 @@
+[
+  {
+    "name": "identityKycDetails",
+    "policy": "OR('BELMSP.member', 'AuditorMSP.member')",
+    "requiredPeerCount": 0,
+    "maxPeerCount": 2,
+    "blockToLive": 0,
+    "memberOnlyRead": true,
+    "memberOnlyWrite": true
+  },
+  {
+    "name": "assetDocumentDetails",
+    "policy": "OR('BELMSP.member', 'AuditorMSP.member', 'ContractorMSP.member')",
+    "requiredPeerCount": 0,
+    "maxPeerCount": 3,
+    "blockToLive": 0,
+    "memberOnlyRead": true,
+    "memberOnlyWrite": true
+  }
+]

@@ -50,26 +50,36 @@ async function saveUploadedFile(file) {
 
     form.append('file', blob, file.filename || 'document');
 
-    const response = await fetch(`${IPFS_API}/add?pin=true`, {
-        method: 'POST',
-        body: form
-    });
+    try {
+        const response = await fetch(`${IPFS_API}/add?pin=true`, {
+            method: 'POST',
+            body: form
+        });
 
-    if (!response.ok) {
-        throw new Error(`IPFS upload failed: ${response.status} ${response.statusText}`);
+        if (!response.ok) {
+            throw new Error(`IPFS upload failed: ${response.status} ${response.statusText}`);
+        }
+
+        const result = await response.json();
+
+        return {
+            originalName: path.basename(file.originalname || file.filename),
+            fileName: file.filename,
+            mimeType: file.mimetype,
+            size: file.size,
+            hash,
+            cid: result.Hash,
+            path: file.path
+        };
+    } finally {
+        if (file.path && fs.existsSync(file.path)) {
+            try {
+                fs.unlinkSync(file.path);
+            } catch (cleanupErr) {
+                console.warn('Temporary file cleanup notice:', cleanupErr.message);
+            }
+        }
     }
-
-    const result = await response.json();
-
-    return {
-        originalName: path.basename(file.originalname || file.filename),
-        fileName: file.filename,
-        mimeType: file.mimetype,
-        size: file.size,
-        hash,
-        cid: result.Hash,
-        path: file.path
-    };
 }
 
 async function retrieveFromIpfs(cid) {

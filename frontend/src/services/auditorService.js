@@ -161,3 +161,19 @@ export async function verifyAssetPublic(assetId) {
 
   return data;
 }
+
+export async function getRecentActivities() {
+  const response = await fetch(`${API_URL}/audit/recent`, {
+    method: "GET",
+    headers: authHeaders(),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "Unable to fetch recent activities");
+  }
+
+  return data.activities || data.data?.activities || [];
+}
+

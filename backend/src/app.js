@@ -6,8 +6,11 @@ const fs = require('fs');
 const path = require('path');
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
 const { connectToFabric } = require('./config/fabric');
+const { initDb, isDbConnected } = require('./config/db');
 const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
+const { startEventListener } = require('./services/eventListenerService');
 
 const assetRoutes = require('./routes/assetRoutes');
 const identityRoutes = require('./routes/identityRoutes');
@@ -27,6 +30,7 @@ if (!fs.existsSync(uploadDir)) {
 
 const app = express();
 
+app.use(helmet());
 app.use(cors());
 app.use(express.json());
 
@@ -43,7 +47,8 @@ app.use('/api/did', didRoutes);
 app.get('/api/health', (req, res) => {
     res.json({
         success: true,
-        message: 'ChainCoder backend is running'
+        message: 'ChainCoder backend is running',
+        database: isDbConnected() ? 'connected' : 'in-memory'
     });
 });
 
@@ -90,6 +95,10 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
     console.log(`ChainCoder backend running on port ${PORT}`);
+    await initDb();
+    startEventListener().catch(err => {
+        console.warn('Background Fabric event listener notice:', err.message);
+    });
 });
