@@ -21,6 +21,7 @@ const auditRoutes = require('./routes/auditRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const verifyRoutes = require('./routes/verifyRoutes');
 const didRoutes = require('./routes/didRoutes');
+const blockchainRoutes = require('./routes/blockchainRoutes');
 
 const uploadDir = path.join(__dirname, '../uploads');
 
@@ -43,6 +44,8 @@ app.use('/api/audit', auditRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/verify', verifyRoutes);
 app.use('/api/did', didRoutes);
+app.use('/api/public/blockchain', blockchainRoutes);
+app.use('/api/blockchain/simulation', blockchainRoutes);
 
 app.get('/api/health', (req, res) => {
     res.json({

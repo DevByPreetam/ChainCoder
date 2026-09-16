@@ -35,7 +35,10 @@ async function loadRequestsFromDb() {
         `);
 
         for (const row of res.rows) {
-            if (!requests.some(r => r.requestId === row.requestId)) {
+            const idx = requests.findIndex(r => r.requestId === row.requestId);
+            if (idx >= 0) {
+                requests[idx] = row;
+            } else {
                 requests.push(row);
             }
         }
@@ -70,19 +73,19 @@ async function createAccessRequest({
         );
     }
 
-    if (organization !== 'Contractor') {
+    if (organization !== 'Contractor' && organization !== 'BEL') {
         throw new AppError(
-            'Only Contractor users can create access requests',
+            'Only Contractor or BEL users can create access requests',
             403,
             'FORBIDDEN'
         );
     }
 
-    const allowedPermissions = ['READ', 'WRITE'];
+    const allowedPermissions = ['READ', 'WRITE', 'READ_WRITE', 'ADMIN'];
 
     if (!allowedPermissions.includes(permission)) {
         throw new AppError(
-            'Invalid permission. Use READ or WRITE',
+            'Invalid permission. Use READ, WRITE, READ_WRITE, or ADMIN',
             400,
             'BAD_REQUEST'
         );
@@ -150,7 +153,60 @@ async function createAccessRequest({
     return request;
 }
 
-function getRequests(filters = {}) {
+async function getRequests(filters = {}) {
+    if (isDbConnected()) {
+        try {
+            let sql = `
+                SELECT 
+                    request_id AS "requestId",
+                    requester_id AS "requesterId",
+                    requester_name AS "requesterName",
+                    organization,
+                    identity_id AS "identityId",
+                    asset_id AS "assetId",
+                    permission,
+                    reason,
+                    status,
+                    approved_by AS "approvedBy",
+                    approved_at AS "approvedAt",
+                    auditor_approved_by AS "auditorApprovedBy",
+                    auditor_approved_at AS "auditorApprovedAt",
+                    rejected_by AS "rejectedBy",
+                    rejection_reason AS "rejectionReason",
+                    rejected_at AS "rejectedAt",
+                    created_at AS "createdAt",
+                    updated_at AS "updatedAt"
+                FROM access_requests
+            `;
+            const conditions = [];
+            const params = [];
+
+            if (filters.status) {
+                params.push(filters.status);
+                conditions.push(`status = $${params.length}`);
+            }
+            if (filters.requesterId) {
+                params.push(filters.requesterId);
+                conditions.push(`requester_id = $${params.length}`);
+            }
+
+            if (conditions.length > 0) {
+                sql += ' WHERE ' + conditions.join(' AND ');
+            }
+            sql += ' ORDER BY created_at DESC';
+
+            const res = await query(sql, params);
+            for (const row of res.rows) {
+                const idx = requests.findIndex(r => r.requestId === row.requestId);
+                if (idx >= 0) requests[idx] = row;
+                else requests.push(row);
+            }
+            return res.rows;
+        } catch (err) {
+            console.warn('Failed to fetch requests from DB:', err.message);
+        }
+    }
+
     return requests.filter((request) => {
         if (filters.status && request.status !== filters.status) {
             return false;
@@ -164,11 +220,49 @@ function getRequests(filters = {}) {
     });
 }
 
-function getPendingRequests() {
+async function getPendingRequests() {
     return getRequests({ status: 'PENDING' });
 }
 
-function getRequestById(requestId) {
+async function getRequestById(requestId) {
+    if (isDbConnected()) {
+        try {
+            const res = await query(`
+                SELECT 
+                    request_id AS "requestId",
+                    requester_id AS "requesterId",
+                    requester_name AS "requesterName",
+                    organization,
+                    identity_id AS "identityId",
+                    asset_id AS "assetId",
+                    permission,
+                    reason,
+                    status,
+                    approved_by AS "approvedBy",
+                    approved_at AS "approvedAt",
+                    auditor_approved_by AS "auditorApprovedBy",
+                    auditor_approved_at AS "auditorApprovedAt",
+                    rejected_by AS "rejectedBy",
+                    rejection_reason AS "rejectionReason",
+                    rejected_at AS "rejectedAt",
+                    created_at AS "createdAt",
+                    updated_at AS "updatedAt"
+                FROM access_requests
+                WHERE request_id = $1
+            `, [requestId]);
+            if (res.rows && res.rows.length > 0) {
+                const idx = requests.findIndex(r => r.requestId === requestId);
+                if (idx >= 0) {
+                    requests[idx] = res.rows[0];
+                } else {
+                    requests.push(res.rows[0]);
+                }
+                return res.rows[0];
+            }
+        } catch (err) {
+            console.warn('Failed to fetch request from DB:', err.message);
+        }
+    }
     return requests.find(
         (request) => request.requestId === requestId
     );
@@ -308,18 +402,112 @@ async function auditorApproveRequest(requestId, auditorId) {
     return request;
 }
 
-function getRequestsByRequester(requesterId) {
+async function getRequestsByRequester(requesterId) {
     if (!requesterId) {
         return [];
     }
 
-    return requests.filter(
-        (request) => request.requesterId === requesterId
+    return getRequests({ requesterId });
+}
+
+async function createAdminGrantProposal({
+    accessId,
+    identityId,
+    assetId,
+    grantedTo,
+    permission,
+    adminUserId,
+    adminUserName
+}) {
+    if (!identityId || !assetId || !permission) {
+        throw new AppError(
+            'identityId, assetId and permission are required',
+            400,
+            'BAD_REQUEST'
+        );
+    }
+
+    const requestId = accessId || `ACC-${Date.now().toString(36).toUpperCase()}-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
+    const requesterId = grantedTo || identityId;
+    const organization = identityId.startsWith('CON') ? 'Contractor' : 'BEL';
+    const now = new Date().toISOString();
+
+    const existingRequest = requests.find(
+        (request) =>
+            request.identityId === identityId &&
+            request.assetId === assetId &&
+            request.permission === permission &&
+            (request.status === 'PENDING' || request.status === 'BEL_APPROVED')
     );
+
+    if (existingRequest) {
+        throw new AppError(
+            `An access proposal (${existingRequest.requestId}) for this asset is already awaiting Auditor co-approval`,
+            409,
+            'CONFLICT'
+        );
+    }
+
+    const request = {
+        requestId,
+        requesterId,
+        requesterName: adminUserName || requesterId,
+        organization,
+        identityId,
+        assetId,
+        permission,
+        reason: `Administrative grant by BEL Admin (${adminUserId})`,
+        status: 'BEL_APPROVED',
+        approvedBy: adminUserId,
+        approvedAt: now,
+        auditorApprovedBy: null,
+        auditorApprovedAt: null,
+        rejectedBy: null,
+        rejectionReason: null,
+        rejectedAt: null,
+        createdAt: now,
+        updatedAt: now
+    };
+
+    requests.push(request);
+
+    if (isDbConnected()) {
+        try {
+            await query(
+                `INSERT INTO access_requests (
+                    request_id, requester_id, requester_name, organization, identity_id,
+                    asset_id, permission, reason, status, approved_by, approved_at,
+                    created_at, updated_at
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'BEL_APPROVED', $9, $10, $10, $10)
+                ON CONFLICT (request_id) DO UPDATE SET
+                    status = 'BEL_APPROVED',
+                    approved_by = EXCLUDED.approved_by,
+                    approved_at = EXCLUDED.approved_at,
+                    updated_at = EXCLUDED.updated_at`,
+                [
+                    requestId,
+                    requesterId,
+                    request.requesterName,
+                    organization,
+                    identityId,
+                    assetId,
+                    permission,
+                    request.reason,
+                    adminUserId,
+                    now
+                ]
+            );
+        } catch (err) {
+            console.error('Failed to persist admin grant proposal to DB:', err.message);
+        }
+    }
+
+    return request;
 }
 
 module.exports = {
     createAccessRequest,
+    createAdminGrantProposal,
     getRequests,
     getPendingRequests,
     getRequestById,
@@ -329,3 +517,4 @@ module.exports = {
     auditorApproveRequest,
     loadRequestsFromDb
 };
+

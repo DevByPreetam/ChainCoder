@@ -52,7 +52,7 @@ function QuickActions() {
   // Request Access for Contractors & Employees
   if (isContractor || user?.role === "Employee") {
     actions.push({
-      to: isContractor ? "/access/requests" : "/assets",
+      to: "/access/requests",
       title: "Request Resource Access",
       description: "Submit multi-party endorsement request",
       icon: "requests",

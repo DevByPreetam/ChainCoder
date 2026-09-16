@@ -17,6 +17,7 @@ import Notifications from "../pages/notifications/Notifications";
 import PublicVerification from "../pages/verification/PublicVerification";
 import PublicIdentityVerification from "../pages/verification/PublicIdentityVerification";
 import Settings from "../pages/settings/Settings";
+import BlockchainLanding from "../pages/landing/BlockchainLanding";
 
 function ProtectedRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
@@ -35,6 +36,9 @@ function ProtectedRoute({ children }) {
 function AppRoutes() {
   return (
     <Routes>
+      <Route path="/" element={<BlockchainLanding />} />
+      <Route path="/explorer" element={<BlockchainLanding />} />
+      <Route path="/simulation" element={<BlockchainLanding />} />
       <Route path="/login" element={<Login />} />
       <Route path="/verify" element={<PublicVerification />} />
       <Route path="/verify-identity" element={<PublicIdentityVerification />} />

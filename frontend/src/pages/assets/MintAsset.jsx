@@ -4,7 +4,7 @@ import { useAuth } from "../../context/AuthContext";
 import Sidebar from "../../components/layout/Sidebar";
 import Topbar from "../../components/layout/Topbar";
 import AssetStatus from "../../components/assets/AssetStatus";
-import { mintAsset, uploadAssetDocument } from "../../services/assetService";
+import { proposeMintAsset, uploadDocumentToIpfs } from "../../services/assetService";
 
 import "../../styles/layout.css";
 import "../../styles/assets.css";
@@ -51,6 +51,8 @@ function MintAsset() {
   // File upload state
   const [file, setFile] = useState(null);
   const [hashingFile, setHashingFile] = useState(false);
+  const [uploadingIpfs, setUploadingIpfs] = useState(false);
+  const [ipfsUploadedCid, setIpfsUploadedCid] = useState("");
 
   // Submission & feedback state
   const [loading, setLoading] = useState(false);
@@ -92,15 +94,35 @@ function MintAsset() {
 
     setError("");
     setFile(selectedFile);
+    setIpfsUploadedCid("");
 
     try {
       setHashingFile(true);
       const computedHash = await calculateSHA256(selectedFile);
       setDocumentHash(computedHash);
 
-      // If documentCID is blank, set a helpful placeholder for IPFS upload
-      if (!documentCID.trim()) {
-        setDocumentCID("pending-ipfs-upload");
+      // Automatically pin document to IPFS right away
+      setUploadingIpfs(true);
+      try {
+        const ipfsResult = await uploadDocumentToIpfs(selectedFile);
+        if (ipfsResult?.cid) {
+          setDocumentCID(ipfsResult.cid);
+          setIpfsUploadedCid(ipfsResult.cid);
+          if (ipfsResult.hash) {
+            setDocumentHash(ipfsResult.hash);
+          }
+          setUploadFeedback({
+            success: true,
+            message: `Document pinned to IPFS (CID: ${ipfsResult.cid})`,
+          });
+        }
+      } catch (ipfsErr) {
+        console.warn("Direct IPFS upload failed:", ipfsErr);
+        if (!documentCID.trim()) {
+          setDocumentCID("pending-ipfs-upload");
+        }
+      } finally {
+        setUploadingIpfs(false);
       }
     } catch (hashErr) {
       console.error("Hash calculation failed:", hashErr);
@@ -112,6 +134,8 @@ function MintAsset() {
 
   function handleRemoveFile() {
     setFile(null);
+    setIpfsUploadedCid("");
+    setUploadFeedback(null);
   }
 
   async function handleSubmit(e) {
@@ -167,13 +191,29 @@ function MintAsset() {
       }
     }
 
-    if (!trimmedCID) {
+    if (file && (!trimmedCID || trimmedCID === "pending-ipfs-upload")) {
+      try {
+        setLoadingMessage("Pinning document to IPFS daemon...");
+        const ipfsResult = await uploadDocumentToIpfs(file);
+        if (ipfsResult?.cid) {
+          trimmedCID = ipfsResult.cid;
+          setDocumentCID(trimmedCID);
+          if (ipfsResult.hash) {
+            trimmedHash = ipfsResult.hash;
+            setDocumentHash(trimmedHash);
+          }
+        }
+      } catch (uploadErr) {
+        console.warn("Pre-mint IPFS upload fallback:", uploadErr);
+        if (!trimmedCID) trimmedCID = "pending-ipfs-upload";
+      }
+    } else if (!trimmedCID) {
       if (file) {
         trimmedCID = "pending-ipfs-upload";
         setDocumentCID(trimmedCID);
       } else {
         setError(
-          "Document IPFS CID is required (e.g. Qm... or pending-ipfs-upload)."
+          "Document IPFS CID is required (e.g. Qm... or attach a document)."
         );
         return;
       }
@@ -181,7 +221,7 @@ function MintAsset() {
 
     try {
       setLoading(true);
-      setLoadingMessage("Endorsing transaction on Hyperledger Fabric...");
+      setLoadingMessage("Submitting mint proposal for Auditor co-approval...");
 
       const payload = {
         assetId: trimmedId,
@@ -192,28 +232,12 @@ function MintAsset() {
         documentCID: trimmedCID,
       };
 
-      // 1. Mint asset on Hyperledger Fabric via backend API
-      const minted = await mintAsset(payload);
-      setSuccessAsset(minted);
-
-      // 2. If a file was attached, upload to IPFS and update on-chain metadata
-      if (file) {
-        setLoadingMessage(
-          "Uploading document to IPFS & recording metadata on blockchain..."
-        );
-        try {
-          const uploadRes = await uploadAssetDocument(trimmedId, file);
-          setUploadFeedback(uploadRes);
-        } catch (uploadErr) {
-          console.error("IPFS Document upload error:", uploadErr);
-          setError(
-            `Asset ${trimmedId} was minted successfully on the blockchain, but document upload to IPFS failed: ${uploadErr.message}. You can re-upload the document from the Asset Details page.`
-          );
-        }
-      }
+      // Submit proposal — asset is NOT minted on Fabric yet (Auditor must co-approve)
+      const proposal = await proposeMintAsset(payload);
+      setSuccessAsset(proposal);
     } catch (err) {
-      console.error("Mint asset failed:", err);
-      setError(err.message || "Failed to mint asset on the blockchain.");
+      console.error("Mint proposal failed:", err);
+      setError(err.message || "Failed to submit mint proposal.");
     } finally {
       setLoading(false);
       setLoadingMessage("");
@@ -277,44 +301,50 @@ function MintAsset() {
                 </div>
               )}
 
-              {/* Success Result Card */}
+              {/* Success Result Card — Proposal Submitted */}
               {successAsset && (
                 <div className="asset-success-container">
                   <div className="asset-success-header">
-                    <div className="asset-success-icon">✓</div>
+                    <div className="asset-success-icon" style={{ background: "linear-gradient(135deg,#7c3aed,#4f46e5)" }}>⏳</div>
                     <div>
                       <h3 className="asset-success-title">
-                        Digital Asset Token Minted Successfully
+                        Mint Proposal Submitted — Awaiting Auditor Co-Approval
                       </h3>
                       <p className="asset-success-subtitle">
-                        Recorded and committed to Hyperledger Fabric world state
-                        by {user?.organization} ({user?.userId}).
+                        Your proposal has been queued. The Auditor must co-approve before this asset is written to Hyperledger Fabric.
                       </p>
                     </div>
                   </div>
 
                   <div className="asset-info-grid">
                     <div className="asset-info-item">
-                      <span className="asset-info-label">NFT / Token ID</span>
-                      <span className="asset-info-value" style={{ color: "#38bdf8", fontWeight: 700 }}>
-                        {successAsset.tokenId || successAsset.assetId}
+                      <span className="asset-info-label">Proposal ID</span>
+                      <span className="asset-info-value" style={{ color: "#a78bfa", fontWeight: 700, fontFamily: "monospace", fontSize: "12px" }}>
+                        {successAsset.proposalId || "—"}
                       </span>
                     </div>
 
                     <div className="asset-info-item">
-                      <span className="asset-info-label">Token Standard</span>
+                      <span className="asset-info-label">Status</span>
                       <span className="asset-info-value">
                         <span style={{
-                          padding: "2px 8px",
+                          padding: "2px 10px",
                           borderRadius: "4px",
-                          background: "#1e293b",
-                          color: "#60a5fa",
+                          background: "#1e1b4b",
+                          color: "#a78bfa",
                           fontSize: "12px",
                           fontWeight: 600,
-                          border: "1px solid #2563eb"
+                          border: "1px solid #7c3aed"
                         }}>
-                          {successAsset.tokenStandard || "CHAINCODER-NFT"}
+                          ⏳ PENDING AUDITOR CO-APPROVAL
                         </span>
+                      </span>
+                    </div>
+
+                    <div className="asset-info-item">
+                      <span className="asset-info-label">Asset ID (Proposed)</span>
+                      <span className="asset-info-value" style={{ color: "#38bdf8", fontWeight: 700 }}>
+                        {successAsset.assetId || successAsset.asset_id}
                       </span>
                     </div>
 
@@ -333,88 +363,40 @@ function MintAsset() {
                     </div>
 
                     <div className="asset-info-item">
-                      <span className="asset-info-label">Owner</span>
+                      <span className="asset-info-label">Proposed Owner</span>
                       <span className="asset-info-value">
                         {successAsset.owner}
                       </span>
                     </div>
 
-                    <div className="asset-info-item">
-                      <span className="asset-info-label">Owner DID</span>
-                      <span className="asset-info-value asset-info-mono" style={{ color: "#38bdf8", fontSize: "12px" }}>
-                        {successAsset.ownerDID || (successAsset.owner && (successAsset.ownerOrganization || user?.organization) ? `did:chaincoder:${successAsset.ownerOrganization || user?.organization}:${successAsset.owner}` : "—")}
-                      </span>
-                    </div>
-
-                    <div className="asset-info-item">
-                      <span className="asset-info-label">Issuer Org</span>
-                      <span className="asset-info-value">
-                        {successAsset.ownerOrganization || user?.organization}
-                      </span>
-                    </div>
-
-                    <div className="asset-info-item">
-                      <span className="asset-info-label">Status</span>
-                      <span className="asset-info-value">
-                        <AssetStatus
-                          status={successAsset.status || "ACTIVE"}
-                        />
+                    <div className="asset-info-item asset-info-wide">
+                      <span className="asset-info-label">SHA-256 Hash (Stored in Proposal)</span>
+                      <span className="asset-info-value asset-info-mono">
+                        {successAsset.documentHash}
                       </span>
                     </div>
 
                     <div className="asset-info-item asset-info-wide">
-                      <span className="asset-info-label">SHA-256 Hash</span>
-                      <span className="asset-info-value asset-info-mono">
-                        {uploadFeedback?.file?.hash ||
-                          successAsset.documentHash}
+                      <span className="asset-info-label">Next Step</span>
+                      <span className="asset-info-value" style={{ color: "#fbbf24" }}>
+                        ℹ️ Log in as <strong>Auditor (AUD001)</strong> → <strong>Approvals</strong> → <strong>Mint Proposals</strong> tab → Co-Approve to write the asset to Hyperledger Fabric.
                       </span>
                     </div>
-
-                    <div className="asset-info-item asset-info-wide">
-                      <span className="asset-info-label">IPFS CID</span>
-                      <span className="asset-info-value asset-info-mono">
-                        {uploadFeedback?.file?.cid ||
-                          successAsset.documentCID}
-                      </span>
-                    </div>
-
-                    {uploadFeedback?.file && (
-                      <div className="asset-info-item asset-info-wide">
-                        <span className="asset-info-label">
-                          IPFS Upload Details
-                        </span>
-                        <span className="asset-info-value">
-                          File pinned successfully ·{" "}
-                          {(uploadFeedback.file.size / 1024).toFixed(1)} KB ·{" "}
-                          {uploadFeedback.file.mimeType}
-                        </span>
-                      </div>
-                    )}
                   </div>
 
                   <div className="asset-actions" style={{ marginTop: "20px" }}>
-                    <Link
-                      to={`/assets/${encodeURIComponent(
-                        successAsset.assetId
-                      )}`}
-                      className="asset-search-button"
-                      style={{ textDecoration: "none", display: "inline-block" }}
-                    >
-                      View Asset Details →
-                    </Link>
-
                     <button
                       type="button"
                       className="asset-action-button"
                       onClick={handleReset}
                     >
-                      Mint Another Asset
+                      Propose Another Asset
                     </button>
 
                     <Link
                       to="/assets"
-                      className="asset-action-button"
-                      style={{ textDecoration: "none", display: "inline-block" }}
+                      className="asset-card-button"
+                      style={{ textDecoration: "none", display: "inline-block", marginTop: 0, padding: "12px 18px" }}
                     >
                       Back to My Assets
                     </Link>
@@ -536,8 +518,20 @@ function MintAsset() {
                         </label>
 
                         {hashingFile && (
-                          <span className="asset-form-help">
-                            Calculating SHA-256 checksum...
+                          <span className="asset-form-help" style={{ color: "#38bdf8" }}>
+                            ⚙️ Calculating SHA-256 checksum...
+                          </span>
+                        )}
+
+                        {uploadingIpfs && (
+                          <span className="asset-form-help" style={{ color: "#a855f7" }}>
+                            📡 Uploading & pinning document to IPFS daemon...
+                          </span>
+                        )}
+
+                        {ipfsUploadedCid && (
+                          <span className="asset-form-help" style={{ color: "#34d399", fontWeight: 600 }}>
+                            ✓ Pinned to IPFS: {ipfsUploadedCid}
                           </span>
                         )}
 
@@ -558,7 +552,7 @@ function MintAsset() {
 
                         <span className="asset-form-help">
                           Supported formats: PDF, PNG, JPG, TXT, DOCX (Max 10 MB).
-                          Selecting a file auto-generates the SHA-256 hash.
+                          Selecting a file auto-generates the SHA-256 hash and pins the file to IPFS.
                         </span>
                       </div>
                     </div>
@@ -611,7 +605,7 @@ function MintAsset() {
                       className="asset-form-submit"
                       disabled={loading || hashingFile}
                     >
-                      {loading ? "Minting on Blockchain..." : "Mint Asset"}
+                      {loading ? "Submitting Proposal..." : "Submit for Auditor Co-Approval"}
                     </button>
 
                     <button

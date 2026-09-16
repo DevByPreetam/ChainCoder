@@ -136,7 +136,7 @@ async function listAuditAssets(req, res) {
 
 async function listAuditAccessRequests(req, res) {
     try {
-        const requests = getRequests();
+        const requests = await getRequests();
         return sendSuccess(res, {
             requests,
             events: getAuditLogs({ resourceType: 'accessRequest' })

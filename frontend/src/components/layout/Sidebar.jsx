@@ -53,8 +53,8 @@ function Sidebar({ isOpen = false, onClose = () => {} }) {
           label: "Access Requests",
           path: "/access/requests",
           icon: "requests",
-          roles: ["Admin", "User"],
-          organizations: ["Contractor"],
+          roles: ["Admin", "User", "Employee"],
+          organizations: ["Contractor", "BEL"],
         },
         {
           label: "Approvals Queue",

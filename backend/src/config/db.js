@@ -107,6 +107,43 @@ async function initDb() {
                     message TEXT,
                     timestamp TIMESTAMPTZ NOT NULL
                 );
+
+                CREATE TABLE IF NOT EXISTS mint_proposals (
+                    proposal_id VARCHAR(100) PRIMARY KEY,
+                    proposed_by VARCHAR(50) NOT NULL,
+                    proposed_by_name VARCHAR(100),
+                    asset_id VARCHAR(100) NOT NULL,
+                    name VARCHAR(255) NOT NULL,
+                    asset_type VARCHAR(100) NOT NULL,
+                    owner VARCHAR(100) NOT NULL,
+                    document_hash VARCHAR(255) NOT NULL,
+                    document_cid VARCHAR(255) NOT NULL,
+                    reason TEXT,
+                    status VARCHAR(30) NOT NULL DEFAULT 'PENDING',
+                    auditor_id VARCHAR(50),
+                    auditor_at TIMESTAMPTZ,
+                    rejection_reason TEXT,
+                    fabric_tx_id VARCHAR(255),
+                    created_at TIMESTAMPTZ NOT NULL,
+                    updated_at TIMESTAMPTZ NOT NULL
+                );
+
+                CREATE TABLE IF NOT EXISTS asset_deletion_proposals (
+                    proposal_id VARCHAR(100) PRIMARY KEY,
+                    asset_id VARCHAR(100) NOT NULL,
+                    asset_name VARCHAR(255),
+                    asset_type VARCHAR(100),
+                    owner VARCHAR(100),
+                    proposed_by VARCHAR(50) NOT NULL,
+                    proposed_by_name VARCHAR(100),
+                    reason TEXT NOT NULL,
+                    status VARCHAR(30) NOT NULL DEFAULT 'PENDING',
+                    auditor_id VARCHAR(50),
+                    auditor_at TIMESTAMPTZ,
+                    rejection_reason TEXT,
+                    created_at TIMESTAMPTZ NOT NULL,
+                    updated_at TIMESTAMPTZ NOT NULL
+                );
             `);
 
             const userCountRes = await client.query('SELECT COUNT(*) FROM users');

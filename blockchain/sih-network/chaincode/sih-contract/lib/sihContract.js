@@ -54,6 +54,15 @@ module.exports = class SIHContract extends Contract {
         return mspId;
     }
 
+    // Returns a deterministic ISO timestamp from the tx proposal — identical
+    // across all endorsing peers for the same transaction.
+    getTxISOTimestamp(ctx) {
+        const ts = ctx.stub.getTxTimestamp();
+        return new Date(
+            ts.seconds.low * 1000 + Math.round(ts.nanos / 1e6)
+        ).toISOString();
+    }
+
     // ============================================================
     // TEST
     // ============================================================
@@ -61,7 +70,7 @@ module.exports = class SIHContract extends Contract {
     async test(ctx) {
         return JSON.stringify({
             message: 'SIH26125 chaincode is working',
-            timestamp: new Date().toISOString()
+            timestamp: this.getTxISOTimestamp(ctx)
         });
     }
 
@@ -94,7 +103,7 @@ module.exports = class SIHContract extends Contract {
             );
         }
 
-        const timestamp = new Date().toISOString();
+        const timestamp = this.getTxISOTimestamp(ctx);
         const did = `did:chaincoder:${organization}:${identityId}`;
         const cryptographicReference = `fabric-ca::${organization}MSP::${identityId}`;
 
@@ -215,7 +224,7 @@ module.exports = class SIHContract extends Contract {
 
         identity.did = did;
         identity.cryptographicReference = cryptographicReference;
-        identity.updatedAt = new Date().toISOString();
+        identity.updatedAt = this.getTxISOTimestamp(ctx);
 
         await ctx.stub.putState(
             key,
@@ -370,7 +379,7 @@ module.exports = class SIHContract extends Contract {
         }
 
         identity.status = 'REVOKED';
-        identity.updatedAt = new Date().toISOString();
+        identity.updatedAt = this.getTxISOTimestamp(ctx);
 
         await ctx.stub.putState(
             key,
@@ -461,7 +470,7 @@ module.exports = class SIHContract extends Contract {
             );
         }
 
-        const timestamp = new Date().toISOString();
+        const timestamp = this.getTxISOTimestamp(ctx);
 
         const access = {
             accessId,
@@ -589,7 +598,7 @@ module.exports = class SIHContract extends Contract {
         }
 
         access.status = 'REVOKED';
-        access.updatedAt = new Date().toISOString();
+        access.updatedAt = this.getTxISOTimestamp(ctx);
 
         await ctx.stub.putState(
             key,
@@ -675,7 +684,7 @@ module.exports = class SIHContract extends Contract {
         const ownerDID = ownerIdentity.did ||
             `did:chaincoder:${ownerOrganization}:${owner}`;
 
-        const timestamp = new Date().toISOString();
+        const timestamp = this.getTxISOTimestamp(ctx);
 
         const asset = {
             assetId,
@@ -806,7 +815,7 @@ async UpdateAssetDocument(
 
     asset.documentHash = documentHash;
     asset.documentCID = documentCID;
-    asset.updatedAt = new Date().toISOString();
+    asset.updatedAt = this.getTxISOTimestamp(ctx);
 
     await ctx.stub.putState(
         key,
@@ -943,7 +952,7 @@ async UpdateAssetDocument(
         asset.ownerDID = newOwnerDID;
         asset.tokenId = asset.tokenId || asset.assetId;
         asset.tokenStandard = asset.tokenStandard || 'CHAINCODER-NFT';
-        asset.updatedAt = new Date().toISOString();
+        asset.updatedAt = this.getTxISOTimestamp(ctx);
 
         await ctx.stub.putState(
             key,
@@ -1077,7 +1086,7 @@ async UpdateAssetDocument(
             identityId,
             kycData: JSON.parse(kycPayload),
             updatedBy: callerMSP,
-            updatedAt: new Date().toISOString()
+            updatedAt: this.getTxISOTimestamp(ctx)
         };
 
         await ctx.stub.putPrivateData(
@@ -1153,7 +1162,7 @@ async UpdateAssetDocument(
             assetId,
             details: JSON.parse(detailsPayload),
             updatedBy: callerMSP,
-            updatedAt: new Date().toISOString()
+            updatedAt: this.getTxISOTimestamp(ctx)
         };
 
         await ctx.stub.putPrivateData(
@@ -1207,7 +1216,7 @@ async UpdateAssetDocument(
             throw new Error('txType and targetId are required');
         }
 
-        const timestamp = new Date().toISOString();
+        const timestamp = this.getTxISOTimestamp(ctx);
         const endorsement = {
             txType,
             targetId,

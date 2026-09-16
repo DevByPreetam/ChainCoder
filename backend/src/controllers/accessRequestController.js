@@ -39,7 +39,7 @@ async function requestAccess(req, res) {
             return sendError(
                 res,
                 403,
-                'Contractor users may only request access for their own identity',
+                'Users may only request access for their own identity',
                 'FORBIDDEN'
             );
         }
@@ -85,7 +85,7 @@ async function requestAccess(req, res) {
 async function listAccessRequests(req, res) {
     try {
         const status = req.query.status;
-        const requests = getRequests(status ? { status } : {});
+        const requests = await getRequests(status ? { status } : {});
         return sendSuccess(res, { requests });
     } catch (error) {
         console.error('List access requests error:', error);
@@ -95,7 +95,7 @@ async function listAccessRequests(req, res) {
 
 async function listPendingAccessRequests(req, res) {
     try {
-        const requests = getPendingRequests();
+        const requests = await getPendingRequests();
         return sendSuccess(res, { requests });
     } catch (error) {
         console.error('List pending access requests error:', error);
@@ -106,7 +106,7 @@ async function listPendingAccessRequests(req, res) {
 async function getAccessRequest(req, res) {
     try {
         const { requestId } = req.params;
-        const request = getRequestById(requestId);
+        const request = await getRequestById(requestId);
 
         if (!request) {
             return sendError(res, 404, 'Access request not found', 'NOT_FOUND');
@@ -204,7 +204,7 @@ async function rejectAccessRequest(req, res) {
 async function auditorApproveAccessRequest(req, res) {
     try {
         const { requestId } = req.params;
-        const request = getRequestById(requestId);
+        const request = await getRequestById(requestId);
 
         if (!request) {
             return sendError(res, 404, 'Access request not found', 'NOT_FOUND');
@@ -262,7 +262,7 @@ async function auditorApproveAccessRequest(req, res) {
 
 async function listMyAccessRequests(req, res) {
     try {
-        const requests = getRequestsByRequester(req.user.userId);
+        const requests = await getRequestsByRequester(req.user.userId);
         return sendSuccess(res, { requests });
     } catch (error) {
         console.error('List my access requests error:', error);

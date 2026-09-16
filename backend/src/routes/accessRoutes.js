@@ -22,7 +22,8 @@ const {
 
 const {
     authenticate,
-    authorizeOrganization
+    authorizeOrganization,
+    authorizeOrganizationRoles
 } = require('../middleware/authMiddleware');
 
 const router = express.Router();
@@ -30,21 +31,30 @@ const router = express.Router();
 router.post(
     '/request',
     authenticate,
-    authorizeOrganization('Contractor', 'Admin', 'User'),
+    authorizeOrganizationRoles(
+        { organization: 'Contractor', roles: ['Admin', 'User'] },
+        { organization: 'BEL', roles: ['Employee', 'Admin', 'Manager'] }
+    ),
     requestAccess
 );
 
 router.post(
     '/requests',
     authenticate,
-    authorizeOrganization('Contractor', 'Admin', 'User'),
+    authorizeOrganizationRoles(
+        { organization: 'Contractor', roles: ['Admin', 'User'] },
+        { organization: 'BEL', roles: ['Employee', 'Admin', 'Manager'] }
+    ),
     requestAccess
 );
 
 router.get(
     '/requests/my',
     authenticate,
-    authorizeOrganization('Contractor', 'Admin', 'User'),
+    authorizeOrganizationRoles(
+        { organization: 'Contractor', roles: ['Admin', 'User'] },
+        { organization: 'BEL', roles: ['Employee', 'Admin', 'Manager'] }
+    ),
     listMyAccessRequests
 );
 
@@ -85,14 +95,20 @@ router.patch(
 router.post(
     '/requests/:requestId/reject',
     authenticate,
-    authorizeOrganization('BEL', 'Admin', 'Manager'),
+    authorizeOrganizationRoles(
+        { organization: 'BEL', roles: ['Admin', 'Manager'] },
+        { organization: 'Auditor', roles: ['Auditor'] }
+    ),
     rejectAccessRequest
 );
 
 router.patch(
     '/requests/:requestId/reject',
     authenticate,
-    authorizeOrganization('BEL', 'Admin', 'Manager'),
+    authorizeOrganizationRoles(
+        { organization: 'BEL', roles: ['Admin', 'Manager'] },
+        { organization: 'Auditor', roles: ['Auditor'] }
+    ),
     rejectAccessRequest
 );
 

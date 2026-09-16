@@ -171,6 +171,18 @@
   border: 1px solid #2e3a4d;
 }
 
+.asset-status-deleted {
+  background: #3b1115;
+  color: #f87171;
+  border: 1px solid #7f1d1d;
+}
+
+.asset-status-pending-delete {
+  background: #382405;
+  color: #fbbf24;
+  border: 1px solid #92400e;
+}
+
 /* ===================================
    Messages and Errors
    =================================== */

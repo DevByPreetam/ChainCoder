@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import Sidebar from "../../components/layout/Sidebar";
 import Topbar from "../../components/layout/Topbar";
@@ -9,6 +10,7 @@ import {
   revokeAccess,
   getAccessHistory,
 } from "../../services/accessService";
+import { getAllMintProposals } from "../../services/assetService";
 
 import "../../styles/layout.css";
 import "../../styles/assets.css";
@@ -55,6 +57,22 @@ function AccessManagement() {
   const [granting, setGranting] = useState(false);
   const [grantError, setGrantError] = useState("");
   const [grantSuccess, setGrantSuccess] = useState(null);
+  const [availableAssets, setAvailableAssets] = useState([]);
+
+  useEffect(() => {
+    async function loadAssets() {
+      try {
+        const proposals = await getAllMintProposals();
+        if (Array.isArray(proposals)) {
+          const approved = proposals.filter((p) => p.status === "APPROVED");
+          setAvailableAssets(approved);
+        }
+      } catch {
+        // Non-blocking
+      }
+    }
+    loadAssets();
+  }, []);
 
   // Revocation state
   const [revokeTarget, setRevokeTarget] = useState(null);
@@ -493,14 +511,27 @@ function AccessManagement() {
                   {grantSuccess && (
                     <div className="asset-success-container">
                       <div className="asset-success-header">
-                        <div className="asset-success-icon">✓</div>
+                        <div
+                          className="asset-success-icon"
+                          style={{
+                            background:
+                              grantSuccess.status === "ACTIVE"
+                                ? undefined
+                                : "linear-gradient(135deg, #7c3aed, #4f46e5)",
+                          }}
+                        >
+                          {grantSuccess.status === "ACTIVE" ? "✓" : "⏳"}
+                        </div>
                         <div>
                           <h3 className="asset-success-title">
-                            Access Granted Successfully
+                            {grantSuccess.status === "ACTIVE"
+                              ? "Access Granted Successfully"
+                              : "Access Grant Proposed — Awaiting Auditor Co-Approval"}
                           </h3>
                           <p className="asset-success-subtitle">
-                            Endorsed and registered on Hyperledger Fabric ledger
-                            for {grantSuccess.identityId} on {grantSuccess.assetId}.
+                            {grantSuccess.status === "ACTIVE"
+                              ? `Endorsed and registered on Hyperledger Fabric ledger for ${grantSuccess.identityId} on ${grantSuccess.assetId}.`
+                              : `Authorized by BEL Admin (${user?.userId}). The grant is queued in the Approvals Queue and requires Auditor co-approval before being written to Hyperledger Fabric.`}
                           </p>
                         </div>
                       </div>
@@ -508,7 +539,9 @@ function AccessManagement() {
                       <div className="asset-info-grid">
                         <div className="asset-info-item">
                           <span className="asset-info-label">Access ID</span>
-                          <span className="asset-info-value">{grantSuccess.accessId}</span>
+                          <span className="asset-info-value" style={{ color: "#38bdf8", fontWeight: 700 }}>
+                            {grantSuccess.accessId}
+                          </span>
                         </div>
 
                         <div className="asset-info-item">
@@ -538,26 +571,46 @@ function AccessManagement() {
                         <div className="asset-info-item">
                           <span className="asset-info-label">Status</span>
                           <span className="asset-info-value">
-                            <span className="access-badge access-badge-active">
-                              {grantSuccess.status || "ACTIVE"}
-                            </span>
+                            {grantSuccess.status === "ACTIVE" ? (
+                              <span className="access-badge access-badge-active">
+                                ACTIVE (On-Chain)
+                              </span>
+                            ) : (
+                              <span
+                                style={{
+                                  padding: "2px 10px",
+                                  borderRadius: "4px",
+                                  background: "#1e1b4b",
+                                  color: "#a78bfa",
+                                  fontSize: "12px",
+                                  fontWeight: 600,
+                                  border: "1px solid #7c3aed",
+                                }}
+                              >
+                                ⏳ BEL_APPROVED (Awaiting Auditor)
+                              </span>
+                            )}
                           </span>
                         </div>
+
+                        {grantSuccess.status !== "ACTIVE" && (
+                          <div className="asset-info-item asset-info-wide">
+                            <span className="asset-info-label">Next Step</span>
+                            <span className="asset-info-value" style={{ color: "#fbbf24" }}>
+                              ℹ️ Log in as <strong>Auditor (AUD001)</strong> → <strong>Approvals Queue</strong> → click <strong>Co-Approve on Fabric</strong> to write this access grant to Hyperledger Fabric.
+                            </span>
+                          </div>
+                        )}
                       </div>
 
                       <div className="asset-actions" style={{ marginTop: "20px" }}>
-                        <button
-                          type="button"
+                        <Link
+                          to="/approvals"
                           className="asset-search-button"
-                          onClick={() => {
-                            setSearchIdentityId(grantSuccess.identityId);
-                            setSearchAssetId(grantSuccess.assetId);
-                            setCheckedAccess(grantSuccess);
-                            setActiveTab("manage");
-                          }}
+                          style={{ textDecoration: "none", display: "inline-block" }}
                         >
-                          Inspect This Access ➔
-                        </button>
+                          View in Approvals Queue ➔
+                        </Link>
 
                         <button
                           type="button"
@@ -576,7 +629,7 @@ function AccessManagement() {
                         Grant New Permission on Blockchain
                       </h3>
                       <p style={{ margin: "0 0 22px", fontSize: "12px", color: "#748095" }}>
-                        Direct BEL authorization establishing an active access grant on the ledger.
+                        Submit an access authorization proposal that requires Auditor co-approval before being committed to Hyperledger Fabric.
                       </p>
 
                       <div className="access-form-grid">
@@ -643,14 +696,50 @@ function AccessManagement() {
                           <input
                             type="text"
                             className="access-form-input"
-                            placeholder="e.g. AST-0001"
+                            placeholder="e.g. AST-20 or AST-019"
+                            list="ledger-asset-suggestions"
                             value={grantAssetId}
                             onChange={(e) => setGrantAssetId(e.target.value)}
                             disabled={granting}
                             required
                           />
+                          <datalist id="ledger-asset-suggestions">
+                            {availableAssets.map((a) => (
+                              <option key={a.assetId} value={a.assetId}>
+                                {a.name ? `${a.assetId} (${a.name})` : a.assetId}
+                              </option>
+                            ))}
+                          </datalist>
                           <span className="access-form-help">
-                            The digital asset being accessed
+                            {availableAssets.length > 0 ? (
+                              <span>
+                                Active assets on Fabric:{" "}
+                                {availableAssets.map((a) => (
+                                  <button
+                                    key={a.assetId}
+                                    type="button"
+                                    onClick={() => setGrantAssetId(a.assetId)}
+                                    style={{
+                                      background: "rgba(56, 189, 248, 0.1)",
+                                      border: "1px solid rgba(56, 189, 248, 0.3)",
+                                      borderRadius: "4px",
+                                      color: "#38bdf8",
+                                      cursor: "pointer",
+                                      padding: "1px 6px",
+                                      margin: "2px 3px",
+                                      fontFamily: "monospace",
+                                      fontSize: "11px",
+                                      fontWeight: 600,
+                                    }}
+                                    title={`Click to select ${a.assetId}`}
+                                  >
+                                    {a.assetId}
+                                  </button>
+                                ))}
+                              </span>
+                            ) : (
+                              "The digital asset token registered on Hyperledger Fabric"
+                            )}
                           </span>
                         </div>
 
@@ -679,7 +768,7 @@ function AccessManagement() {
                           className="access-btn-primary"
                           disabled={granting}
                         >
-                          {granting ? "Granting on Blockchain..." : "Submit Access Grant"}
+                          {granting ? "Submitting Grant Proposal..." : "Submit for Auditor Co-Approval"}
                         </button>
 
                         <button

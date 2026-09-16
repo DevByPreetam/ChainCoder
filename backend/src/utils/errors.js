@@ -59,7 +59,18 @@ function isChaincodeFunctionMissing(error) {
 }
 
 function mapFabricError(error, fallbackMessage = 'An unexpected error occurred') {
-    const raw = error?.message || fallbackMessage;
+    // EndorseError from Fabric Gateway buries the real chaincode message in details[]
+    let raw = error?.message || fallbackMessage;
+    if (Array.isArray(error?.details) && error.details.length > 0) {
+        // e.g. "chaincode response 500, Asset AST-007 already exists"
+        const detailMsg = error.details[0]?.message || '';
+        const ccMatch = detailMsg.match(/chaincode response \d+,\s*(.+)/i);
+        if (ccMatch) {
+            raw = ccMatch[1].trim();
+        } else if (detailMsg) {
+            raw = detailMsg;
+        }
+    }
     const message = sanitizeClientMessage(raw);
 
     if (isChaincodeFunctionMissing(error)) {

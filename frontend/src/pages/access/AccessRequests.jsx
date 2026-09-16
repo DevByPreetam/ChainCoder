@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import Sidebar from "../../components/layout/Sidebar";
 import Topbar from "../../components/layout/Topbar";
@@ -21,6 +22,8 @@ import "../../styles/access-requests.css";
 
 function AccessRequests() {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const paramAssetId = searchParams.get("assetId");
 
   const isContractor = user?.organization === "Contractor";
   const isBelApprover =
@@ -28,23 +31,26 @@ function AccessRequests() {
     (user?.role === "Admin" || user?.role === "Manager");
   const isAuditor =
     user?.organization === "Auditor" && user?.role === "Auditor";
+  const isRequester = isContractor || user?.role === "Employee";
 
-  const isAuthorized = isContractor || isBelApprover || isAuditor;
+  const isAuthorized = isRequester || isBelApprover || isAuditor;
 
   // Tabs
-  // Contractor: 'submit' | 'my'
-  // BEL: 'pending' | 'all'
+  // Requester (Contractor/Employee): 'submit' | 'my'
+  // BEL Approver: 'pending' | 'all'
   // Auditor: 'awaiting_auditor' | 'all'
-  const defaultTab = isContractor
+  const defaultTab = paramAssetId && isRequester
+    ? "submit"
+    : isRequester
     ? "my"
     : isBelApprover
     ? "pending"
     : "awaiting_auditor";
   const [activeTab, setActiveTab] = useState(defaultTab);
 
-  // Contractor Form State
+  // Requester Form State
   const [identityId, setIdentityId] = useState(user?.userId || "");
-  const [assetId, setAssetId] = useState("");
+  const [assetId, setAssetId] = useState(paramAssetId || "");
   const [permission, setPermission] = useState("READ");
   const [reason, setReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -91,7 +97,7 @@ function AccessRequests() {
       setListError("");
       let data = [];
 
-      if (isContractor) {
+      if (isRequester) {
         data = await getMyAccessRequests();
       } else if (isBelApprover) {
         if (tabToLoad === "pending") {
@@ -318,15 +324,15 @@ function AccessRequests() {
           <div className="page-header">
             <div>
               <h2>
-                {isContractor
-                  ? "Contractor Access Requests"
+                {isRequester
+                  ? "Resource Access Requests"
                   : isBelApprover
                   ? "Access Requests Approval Queue"
                   : "Auditor Co-Endorsement Queue"}
               </h2>
               <p>
-                Two-step multi-party authorization workflow: Contractor requests
-                require both BEL approval and Auditor co-endorsement to become
+                Two-step multi-party authorization workflow: Access requests
+                require BEL approval and Auditor co-endorsement to become
                 active on Hyperledger Fabric.
               </p>
             </div>
@@ -335,7 +341,7 @@ function AccessRequests() {
           {!isAuthorized ? (
             <div className="asset-error">
               <strong>Access Denied:</strong> This section is available only to
-              Contractor identity holders, BEL Approvers, and Compliance
+              authorized Employees, Contractor identity holders, BEL Approvers, and Compliance
               Auditors.
             </div>
           ) : (
@@ -392,7 +398,7 @@ function AccessRequests() {
 
               {/* Tab Navigation */}
               <div className="access-tabs">
-                {isContractor && (
+                {isRequester && (
                   <>
                     <button
                       type="button"
@@ -466,8 +472,8 @@ function AccessRequests() {
                 )}
               </div>
 
-              {/* CONTRACTOR TAB: SUBMIT REQUEST */}
-              {isContractor && activeTab === "submit" && (
+              {/* REQUESTER TAB: SUBMIT REQUEST */}
+              {isRequester && activeTab === "submit" && (
                 <div>
                   {submitError && <div className="asset-error">{submitError}</div>}
 
@@ -566,8 +572,8 @@ function AccessRequests() {
                           />
                           <span className="access-form-help">
                             {user?.role === "Admin"
-                              ? "Contractor Admin may request on behalf of own org members"
-                              : "Contractor users must request for their own identity ID"}
+                              ? "Admins may request on behalf of own org members"
+                              : "Requesters must request for their own identity ID"}
                           </span>
                         </div>
 
@@ -605,7 +611,7 @@ function AccessRequests() {
                             <option value="WRITE">WRITE (Update document & asset metadata)</option>
                           </select>
                           <span className="access-form-help">
-                            Contractor requests support READ or WRITE level
+                            Supported access levels: READ or WRITE
                           </span>
                         </div>
 
@@ -660,7 +666,7 @@ function AccessRequests() {
                   <div className="access-table-header-row">
                     <div>
                       <h3>
-                        {isContractor
+                        {isRequester
                           ? "My Access Requests"
                           : activeTab === "pending"
                           ? "Pending Access Requests Awaiting BEL Decision"
@@ -706,7 +712,7 @@ function AccessRequests() {
 
                   {!loadingList && displayedRequests.length === 0 && (
                     <div className="asset-empty">
-                      {isContractor
+                      {isRequester
                         ? "You have not submitted any access requests yet."
                         : activeTab === "pending"
                         ? "No pending access requests awaiting BEL decision."

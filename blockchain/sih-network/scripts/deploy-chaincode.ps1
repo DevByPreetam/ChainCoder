@@ -217,6 +217,7 @@ foreach ($org in @("BEL", "Auditor", "Contractor")) {
     Set-OrgEnv -Org $org
     Write-Host "  Approving for $org (Sequence $Sequence) ..." -ForegroundColor Gray
     
+    $collectionsConfig = Join-Path $script:NetworkDir "chaincode\sih-contract\collections_config.json"
     $apprOut = & $peerExe lifecycle chaincode approveformyorg `
         -o localhost:7050 `
         --ordererTLSHostnameOverride orderer1.sih26125.local `
@@ -226,6 +227,7 @@ foreach ($org in @("BEL", "Auditor", "Contractor")) {
         --sequence $Sequence `
         --tls `
         --cafile "$ordererCaFile" `
+        --collections-config "$collectionsConfig" `
         --package-id "$packageId" 2>&1
     $apprExit = $LASTEXITCODE
 
@@ -243,6 +245,7 @@ Write-Host ""
 Write-Host "STEP 5 - Checking commit readiness ..." -ForegroundColor Yellow
 
 Set-OrgEnv -Org "BEL"
+$collectionsConfigCheck = Join-Path $NetworkDir "chaincode\sih-contract\collections_config.json"
 $readiness = & $peerExe lifecycle chaincode checkcommitreadiness `
     --channelID sihchannel `
     --name sih-contract `
@@ -250,6 +253,7 @@ $readiness = & $peerExe lifecycle chaincode checkcommitreadiness `
     --sequence $Sequence `
     --tls `
     --cafile "$ordererCaFile" `
+    --collections-config "$collectionsConfigCheck" `
     --output json 2>&1
 
 Write-Host "  Commit readiness: $readiness" -ForegroundColor Gray
@@ -266,6 +270,7 @@ Write-Host ""
 Write-Host "STEP 6 - Committing chaincode definition to sihchannel ..." -ForegroundColor Yellow
 
 Set-OrgEnv -Org "BEL"
+$collectionsConfig = Join-Path $NetworkDir "chaincode\sih-contract\collections_config.json"
 $commitOut = & $peerExe lifecycle chaincode commit `
     -o localhost:7050 `
     --ordererTLSHostnameOverride orderer1.sih26125.local `
@@ -275,6 +280,7 @@ $commitOut = & $peerExe lifecycle chaincode commit `
     --sequence $Sequence `
     --tls `
     --cafile "$ordererCaFile" `
+    --collections-config "$collectionsConfig" `
     --peerAddresses localhost:7051 --tlsRootCertFiles "$belTlsCert" `
     --peerAddresses localhost:8051 --tlsRootCertFiles "$audTlsCert" `
     --peerAddresses localhost:9051 --tlsRootCertFiles "$conTlsCert" 2>&1

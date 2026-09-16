@@ -7,6 +7,7 @@ const {
     updateAssetDocument,
     getAssetHistory
 } = require('../services/assetService');
+const { isAssetDeleted, getPendingProposalForAsset } = require('../services/assetDeletionService');
 const { saveUploadedFile, hashFromIpfs, retrieveFromIpfs } = require('../services/fileService');
 const { recordFromRequest } = require('../services/auditLogService');
 const { notifyRoles, createNotification } = require('../services/notificationService');
@@ -130,6 +131,18 @@ async function fetchAsset(req, res) {
 
         const asset = await getAsset(assetId, req.user.organization);
 
+        const deleted = await isAssetDeleted(assetId);
+        if (deleted) {
+            asset.status = 'DELETED';
+            asset.isDeleted = true;
+        } else {
+            const pendingProposal = await getPendingProposalForAsset(assetId);
+            if (pendingProposal) {
+                asset.hasPendingDeletion = true;
+                asset.pendingDeletionProposal = pendingProposal;
+            }
+        }
+
         if (!(await canViewAsset(req.user, asset))) {
             return sendError(res, 403, 'Access denied', 'FORBIDDEN');
         }
@@ -155,6 +168,11 @@ async function transferExistingAsset(req, res) {
         }
 
         assertSafeId(assetId, 'assetId');
+
+        const deleted = await isAssetDeleted(assetId);
+        if (deleted) {
+            return sendError(res, 400, `Asset ${assetId} is decommissioned/deleted and cannot be transferred`, 'BAD_REQUEST');
+        }
 
         const existing = await getAsset(assetId, req.user.organization);
 
@@ -358,8 +376,8 @@ async function verifyAssetDocument(req, res) {
             );
         }
 
-        const retrieved = await hashFromIpfs(asset.documentCID);
-        const verified = retrieved.hash === asset.documentHash;
+        const retrieved = await hashFromIpfs(asset.documentCID, asset.documentHash, assetId);
+        const verified = retrieved.hash.toLowerCase() === asset.documentHash.toLowerCase();
 
         return sendSuccess(res, {
             verified,
@@ -385,17 +403,40 @@ async function downloadAssetDocument(req, res) {
             return sendError(res, 403, 'Access denied', 'FORBIDDEN');
         }
 
-        if (!asset.documentCID) {
-            return sendError(res, 404, 'Asset has no document CID', 'NOT_FOUND');
+        if (!asset.documentCID && !asset.documentHash) {
+            return sendError(res, 404, 'Asset has no document CID or hash', 'NOT_FOUND');
         }
 
-        const buffer = await retrieveFromIpfs(asset.documentCID);
+        const buffer = await retrieveFromIpfs(asset.documentCID, asset.documentHash, assetId);
 
-        res.setHeader('Content-Type', 'application/octet-stream');
+        // Detect extension and Content-Type from buffer magic bytes
+        let ext = '.bin';
+        let contentType = 'application/octet-stream';
+        if (buffer && buffer.length >= 4) {
+            if (buffer.subarray(0, 4).toString() === '%PDF') {
+                ext = '.pdf';
+                contentType = 'application/pdf';
+            } else if (buffer[0] === 0x50 && buffer[1] === 0x4B && buffer[2] === 0x03 && buffer[3] === 0x04) {
+                ext = '.docx';
+                contentType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+            } else if (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4E && buffer[3] === 0x47) {
+                ext = '.png';
+                contentType = 'image/png';
+            } else if (buffer[0] === 0xFF && buffer[1] === 0xD8 && buffer[2] === 0xFF) {
+                ext = '.jpg';
+                contentType = 'image/jpeg';
+            } else if (buffer.subarray(0, 5).toString().startsWith('===') || buffer.subarray(0, 5).toString().startsWith('Asset')) {
+                ext = '.txt';
+                contentType = 'text/plain';
+            }
+        }
+
+        res.setHeader('Content-Type', contentType);
         res.setHeader(
             'Content-Disposition',
-            `attachment; filename="${assetId}-document"`
+            `attachment; filename="${assetId}-document${ext}"`
         );
+        res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition');
         return res.status(200).send(buffer);
     } catch (error) {
         console.error('Download document error:', error);
@@ -433,9 +474,9 @@ async function publicVerifyAsset(req, res) {
 
         if (asset.documentCID && asset.documentHash) {
             try {
-                const retrieved = await hashFromIpfs(asset.documentCID);
+                const retrieved = await hashFromIpfs(asset.documentCID, asset.documentHash, assetId);
                 calculatedHash = retrieved.hash;
-                verified = retrieved.hash === asset.documentHash;
+                verified = retrieved.hash.toLowerCase() === asset.documentHash.toLowerCase();
             } catch (ipfsError) {
                 console.error('Public verify IPFS error:', ipfsError);
                 verified = false;
