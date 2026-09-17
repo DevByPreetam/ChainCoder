@@ -262,7 +262,8 @@ router.patch(
     authenticate,
     authorizeOrganizationRoles(
         { organization: 'BEL', roles: ['Admin'] },
-        { organization: 'Contractor', roles: ['Admin', 'User'] }
+        { organization: 'Contractor', roles: ['Admin', 'User'] },
+        { organization: 'Auditor', roles: ['Auditor', 'Admin'] }
     ),
     transferExistingAsset
 );

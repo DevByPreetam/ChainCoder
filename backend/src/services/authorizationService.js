@@ -69,6 +69,10 @@ function canTransferAsset(user, asset) {
         return asset.owner === user.userId;
     }
 
+    if (user.organization === 'Auditor' && ['Auditor', 'Admin'].includes(user.role)) {
+        return asset.owner === user.userId;
+    }
+
     return false;
 }
 

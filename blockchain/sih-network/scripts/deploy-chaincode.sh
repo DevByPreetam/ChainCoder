@@ -17,8 +17,8 @@ PROJECT_ROOT="$(cd "${BLOCKCHAIN_DIR}/.." && pwd)"
 export PATH="${NETWORK_DIR}/../fabric-samples/bin:${PROJECT_ROOT}/blockchain/fabric-samples/bin:${PATH}"
 export FABRIC_CFG_PATH="${PROJECT_ROOT}/blockchain/fabric-samples/config"
 
-VERSION="${1:-2.4}"
-SEQUENCE="${2:-1}"
+VERSION="${1:-3.3}"
+SEQUENCE="${2:-13}"
 
 ORDERER_CA="${NETWORK_DIR}/organizations/ordererOrganizations/sih26125.local/msp/tlscacerts/tls-localhost-10054-OrdererCA.pem"
 BEL_TLS_CERT="${NETWORK_DIR}/organizations/peerOrganizations/bel.sih26125.local/peers/peer0.bel.sih26125.local/tls/tlscacerts/tls-localhost-7054.pem"

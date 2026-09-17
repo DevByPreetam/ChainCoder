@@ -64,6 +64,50 @@ module.exports = class SIHContract extends Contract {
     }
 
     // ============================================================
+    // STATE-BASED ENDORSEMENT (SBE) HELPERS
+    // ============================================================
+
+    /**
+     * Builds a Fabric State-Based Endorsement policy bytes for the given MSP IDs.
+     * Requires ALL listed orgs to endorse (AND semantics via n-of-n NOutOf).
+     *
+     * Correct role constant: 'PEER' (not 'LEDGER_ROLE_PEER').
+     * pol.getPolicy() returns Uint8Array directly — no .serializeBinary() needed.
+     *
+     * @param {string[]} orgs - Array of MSP IDs e.g. ['BELMSP', 'AuditorMSP']
+     * @returns {Uint8Array} serialized endorsement policy bytes
+     */
+    buildSBEPolicy(orgs) {
+        const { KeyEndorsementPolicy } = require('fabric-shim');
+        const pol = new KeyEndorsementPolicy();
+        pol.addOrgs('PEER', ...orgs);
+        return pol.getPolicy();
+    }
+
+    /**
+     * Returns the array of MSP IDs required to endorse writes to an asset key,
+     * based on the current owner's organization.
+     *
+     * Policy per SIH design spec:
+     *   BEL owner      → ['BELMSP']
+     *   Auditor owner  → ['BELMSP', 'AuditorMSP']
+     *   Contractor owner → ['BELMSP', 'ContractorMSP']
+     *
+     * @param {string} ownerOrganization - value from asset.ownerOrganization
+     * @returns {string[]} MSP IDs
+     */
+    _getAssetSBEOrgs(ownerOrganization) {
+        const mspMap = {
+            'BEL':        'BELMSP',
+            'Auditor':    'AuditorMSP',
+            'Contractor': 'ContractorMSP'
+        };
+        const ownerMsp = mspMap[ownerOrganization] || 'BELMSP';
+        // If owner is BEL, only BELMSP needed (BEL is both co-signer and owner)
+        return ownerMsp === 'BELMSP' ? ['BELMSP'] : ['BELMSP', ownerMsp];
+    }
+
+    // ============================================================
     // TEST
     // ============================================================
 
@@ -489,6 +533,16 @@ module.exports = class SIHContract extends Contract {
             Buffer.from(JSON.stringify(access))
         );
 
+        // Set State-Based Endorsement policy on this access key.
+        // Policy: AND(BELMSP, AuditorMSP) — both must endorse future writes.
+        // NOTE: SBE takes effect from the NEXT transaction — the creation tx
+        // itself is protected by the backend approval workflow +
+        // endorsingOrganizations at the Gateway layer.
+        await ctx.stub.setStateValidationParameter(
+            key,
+            this.buildSBEPolicy(['BELMSP', 'AuditorMSP'])
+        );
+
         // Emit Fabric Transaction Event
         ctx.stub.setEvent('AccessGranted', Buffer.from(JSON.stringify({
             accessId,
@@ -707,6 +761,17 @@ module.exports = class SIHContract extends Contract {
             Buffer.from(JSON.stringify(asset))
         );
 
+        // Set State-Based Endorsement policy on this asset key.
+        // Policy: AND(BELMSP, <ownerOrg>MSP) for future writes.
+        // NOTE: SBE takes effect from the NEXT transaction — the creation tx
+        // itself is protected by the backend two-step approval workflow +
+        // endorsingOrganizations at the Gateway layer.
+        const sbeOrgs = this._getAssetSBEOrgs(ownerOrganization);
+        await ctx.stub.setStateValidationParameter(
+            key,
+            this.buildSBEPolicy(sbeOrgs)
+        );
+
         // Emit Fabric Transaction Event
         ctx.stub.setEvent('AssetMinted', Buffer.from(JSON.stringify({
             assetId,
@@ -821,6 +886,22 @@ async UpdateAssetDocument(
         key,
         Buffer.from(JSON.stringify(asset))
     );
+
+    // Lazy migration: if this asset key has no SBE yet (pre-upgrade legacy asset),
+    // set the SBE now based on the current owner's organization.
+    // This ensures all future writes to this key are SBE-protected.
+    const existingEp = await ctx.stub.getStateValidationParameter(key);
+    if (!existingEp || existingEp.length === 0) {
+        const ownerOrg = asset.ownerOrganization ||
+            (asset.owner && asset.owner.startsWith('BEL') ? 'BEL' :
+             asset.owner && asset.owner.startsWith('CON') ? 'Contractor' :
+             asset.owner && asset.owner.startsWith('AUD') ? 'Auditor' : 'BEL');
+        const sbeOrgs = this._getAssetSBEOrgs(ownerOrg);
+        await ctx.stub.setStateValidationParameter(
+            key,
+            this.buildSBEPolicy(sbeOrgs)
+        );
+    }
 
     // Emit Fabric Transaction Event
     ctx.stub.setEvent('AssetDocumentUpdated', Buffer.from(JSON.stringify({
@@ -947,6 +1028,9 @@ async UpdateAssetDocument(
         const newOwnerDID = newOwnerIdent.did ||
             `did:chaincoder:${newOwnerOrg}:${newOwner}`;
 
+        // Capture previous owner BEFORE mutating the asset object
+        const previousOwner = asset.owner;
+
         asset.owner = newOwner;
         asset.ownerOrganization = newOwnerOrg;
         asset.ownerDID = newOwnerDID;
@@ -959,10 +1043,20 @@ async UpdateAssetDocument(
             Buffer.from(JSON.stringify(asset))
         );
 
+        // State-Based Endorsement: update the asset key's SBE to reflect the NEW owner.
+        // Policy: AND(BELMSP, <newOwnerOrg>MSP).
+        // Lazy migration: if the key had no SBE (pre-upgrade legacy asset),
+        // setStateValidationParameter now sets it — no separate migration step needed.
+        const newSBEOrgs = this._getAssetSBEOrgs(newOwnerOrg);
+        await ctx.stub.setStateValidationParameter(
+            key,
+            this.buildSBEPolicy(newSBEOrgs)
+        );
+
         // Emit Fabric Transaction Event
         ctx.stub.setEvent('AssetTransferred', Buffer.from(JSON.stringify({
             assetId,
-            previousOwner: asset.owner,
+            previousOwner,
             newOwner,
             timestamp: asset.updatedAt
         })));

@@ -1,4 +1,4 @@
-﻿# ============================================================
+# ============================================================
 # ChainCoder - Chaincode Packaging & Deployment Script
 # blockchain/sih-network/scripts/deploy-chaincode.ps1
 #
@@ -24,11 +24,14 @@
 [CmdletBinding()]
 param(
     [string]$FabricBinPath = "",
-    [int]$Sequence = 1,
-    [string]$Version = "2.4"
+    [int]$Sequence = 13,
+    [string]$Version = "3.3"
 )
 
-$ErrorActionPreference = "Stop"
+$ErrorActionPreference = "Continue"
+if (Get-Variable -Name PSNativeCommandUseErrorActionPreference -ErrorAction SilentlyContinue) {
+    $PSNativeCommandUseErrorActionPreference = $false
+}
 
 # ------------------------------------------------------------
 # 1. Robust Path Calculation
@@ -232,7 +235,7 @@ foreach ($org in @("BEL", "Auditor", "Contractor")) {
     $apprExit = $LASTEXITCODE
 
     if ($apprExit -ne 0 -and $apprOut -notmatch "already approved") {
-        Write-Host "ERROR: Failed to approve chaincode for $org: $apprOut" -ForegroundColor Red
+        Write-Host "ERROR: Failed to approve chaincode for ${org}: $apprOut" -ForegroundColor Red
         exit 1
     }
     Write-Host "    $org approved successfully." -ForegroundColor Green
@@ -299,9 +302,10 @@ Write-Host ""
 Write-Host "STEP 7 - Verifying committed definition ..." -ForegroundColor Yellow
 
 $committedVerify = & $peerExe lifecycle chaincode querycommitted --channelID sihchannel --name sih-contract 2>&1
-if ($committedVerify -notmatch "Version: ${Version}") {
+$committedVerifyStr = ($committedVerify | Out-String)
+if ($committedVerifyStr -notmatch "Version: ${Version}") {
     Write-Host "ERROR: Verification failed: sih-contract v$Version is not committed on sihchannel." -ForegroundColor Red
-    Write-Host "Output: $committedVerify" -ForegroundColor Gray
+    Write-Host "Output: $committedVerifyStr" -ForegroundColor Gray
     exit 1
 }
 Write-Host "  Committed definition verified: $committedVerify" -ForegroundColor Green
@@ -318,7 +322,7 @@ $querySuccess = $false
 for ($i = 1; $i -le 4; $i++) {
     Write-Host "  Invoking test query (attempt $i of 4) ..." -ForegroundColor Gray
     $testQuery = & $peerExe chaincode query -C sihchannel -n sih-contract -c '{\"function\":\"test\",\"Args\":[]}' 2>&1
-    if ($testQuery -match "SIH26125 chaincode is working") {
+    if (($testQuery | Out-String) -match "SIH26125 chaincode is working") {
         Write-Host "  [PASS] Chaincode response received:" -ForegroundColor Green
         Write-Host "         $testQuery" -ForegroundColor Green
         $querySuccess = $true

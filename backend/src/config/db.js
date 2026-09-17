@@ -144,6 +144,22 @@ async function initDb() {
                     created_at TIMESTAMPTZ NOT NULL,
                     updated_at TIMESTAMPTZ NOT NULL
                 );
+
+                CREATE TABLE IF NOT EXISTS revocation_proposals (
+                    proposal_id VARCHAR(100) PRIMARY KEY,
+                    identity_id VARCHAR(50) NOT NULL,
+                    organization VARCHAR(50),
+                    proposed_by VARCHAR(50) NOT NULL,
+                    proposed_by_name VARCHAR(100),
+                    reason TEXT NOT NULL,
+                    status VARCHAR(30) NOT NULL DEFAULT 'PENDING',
+                    auditor_id VARCHAR(50),
+                    auditor_at TIMESTAMPTZ,
+                    rejection_reason TEXT,
+                    fabric_tx_id VARCHAR(255),
+                    created_at TIMESTAMPTZ NOT NULL,
+                    updated_at TIMESTAMPTZ NOT NULL
+                );
             `);
 
             const userCountRes = await client.query('SELECT COUNT(*) FROM users');

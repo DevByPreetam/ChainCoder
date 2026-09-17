@@ -49,6 +49,28 @@ async function submitTransaction(organization, functionName, ...args) {
     });
 }
 
+async function submitTransactionWithOptions(organization, functionName, options) {
+    return withContract(organization, async (contract) => {
+        try {
+            const result = await contract.submit(functionName, options);
+            const parsed = parseResult(result);
+            console.log(`${functionName} result:`, parsed);
+            return parsed;
+        } catch (error) {
+            if (functionName === 'UpdateAssetDocument' && isChaincodeFunctionMissing(error)) {
+                const unavailable = new Error(
+                    'UpdateAssetDocument is not available on the deployed chaincode'
+                );
+                unavailable.code = 'CHAINCODE_FUNCTION_UNAVAILABLE';
+                unavailable.cause = error;
+                throw unavailable;
+            }
+
+            throw error;
+        }
+    });
+}
+
 async function evaluateTransaction(organization, functionName, ...args) {
     return withContract(organization, async (contract) => {
         try {
@@ -93,7 +115,14 @@ async function getIdentity(identityId, organization = 'BEL') {
 }
 
 async function revokeIdentity(identityId, organization = 'BEL') {
-    return submitTransaction(organization, 'RevokeIdentity', identityId);
+    return submitTransactionWithOptions(
+        organization,
+        'RevokeIdentity',
+        {
+            arguments: [identityId],
+            endorsingOrganizations: ['BELMSP', 'AuditorMSP']
+        }
+    );
 }
 
 async function grantAccess(
@@ -104,14 +133,19 @@ async function grantAccess(
     grantedTo,
     permission
 ) {
-    return submitTransaction(
+    return submitTransactionWithOptions(
         organization,
         'GrantAccess',
-        accessId,
-        identityId,
-        assetId,
-        grantedTo,
-        permission
+        {
+            arguments: [
+                accessId,
+                identityId,
+                assetId,
+                grantedTo,
+                permission
+            ],
+            endorsingOrganizations: ['BELMSP', 'AuditorMSP']
+        }
     );
 }
 
@@ -132,15 +166,20 @@ async function mintAsset(
     documentHash,
     documentCID
 ) {
-    return submitTransaction(
+    return submitTransactionWithOptions(
         organization,
         'MintAsset',
-        assetId,
-        name,
-        assetType,
-        owner,
-        documentHash,
-        documentCID
+        {
+            arguments: [
+                assetId,
+                name,
+                assetType,
+                owner,
+                documentHash || '',
+                documentCID || ''
+            ],
+            endorsingOrganizations: ['BELMSP', 'AuditorMSP']
+        }
     );
 }
 

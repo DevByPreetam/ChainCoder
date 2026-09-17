@@ -15,6 +15,15 @@ const { query, isDbConnected } = require('../config/db');
 const { recordFromRequest } = require('../services/auditLogService');
 const { createNotification } = require('../services/notificationService');
 const { canViewIdentity, assertSafeId } = require('../services/authorizationService');
+const {
+    createRevocationProposal,
+    getRevocationProposals,
+    getPendingRevocationProposals,
+    getRevocationProposalById,
+    getPendingProposalByIdentityId,
+    approveRevocationProposal,
+    rejectRevocationProposal
+} = require('../services/revocationProposalService');
 const { AppError, handleControllerError, sendError, sendSuccess } = require('../utils/errors');
 
 function assertCanRegister(user, organization, role) {
@@ -176,35 +185,99 @@ async function fetchIdentity(req, res) {
 }
 
 async function revokeExistingIdentity(req, res) {
+    // Direct revocation without Auditor approval is disabled per SIH specification:
+    // RevokeIdentity requires issuing organization + Auditor co-approval.
+    return sendError(
+        res,
+        403,
+        'Direct identity revocation is disabled. RevokeIdentity requires issuing organization proposal and Auditor co-approval. Use PATCH /api/identities/:identityId/revoke-propose followed by Auditor /api/identities/:identityId/revoke-approve.',
+        'REVOCATION_WORKFLOW_REQUIRED'
+    );
+}
+
+async function proposeRevocation(req, res) {
     try {
         const { identityId } = req.params;
+        const { reason } = req.body || {};
 
         if (!identityId) {
             return sendError(res, 400, 'identityId is required', 'BAD_REQUEST');
         }
+        if (!reason) {
+            return sendError(res, 400, 'Revocation reason is required', 'BAD_REQUEST');
+        }
 
         assertSafeId(identityId, 'identityId');
 
-        // 1. Revoke identity on Hyperledger Fabric ledger
-        const identity = await revokeIdentity(identityId, 'BEL');
-
-        // 2. Revoke certificate on Fabric CA and generate CRL
-        let caRevocation = null;
-        try {
-            caRevocation = await revokeIdentityInCA({
-                organization: identity.organization || 'BEL',
-                identityId,
-                reason: 'cessationofoperation'
-            });
-        } catch (caErr) {
-            console.warn('Fabric CA revocation notice:', caErr.message);
+        // Check if existing pending proposal exists
+        const existingPending = await getPendingProposalByIdentityId(identityId);
+        if (existingPending) {
+            return sendError(res, 409, `A pending revocation proposal already exists for identity ${identityId}`, 'CONFLICT');
         }
 
-        // 3. Synchronize application user status in database
-        await updateUserStatus(identityId, 'REVOKED');
+        // Fetch identity details from ledger
+        const identity = await getIdentity(identityId);
+        if (!identity) {
+            return sendError(res, 404, `Identity ${identityId} not found`, 'NOT_FOUND');
+        }
+        if (identity.status === 'REVOKED') {
+            return sendError(res, 400, `Identity ${identityId} is already revoked`, 'BAD_REQUEST');
+        }
+
+        const proposal = await createRevocationProposal({
+            identityId,
+            organization: identity.organization,
+            proposedBy: req.user.userId,
+            proposedByName: req.user.name,
+            reason
+        });
 
         recordFromRequest(req, {
-            action: 'IDENTITY_REVOKED',
+            action: 'IDENTITY_REVOCATION_PROPOSED',
+            resourceType: 'identity',
+            resourceId: identityId,
+            success: true
+        });
+
+        createNotification({
+            organization: 'Auditor',
+            type: 'REVOCATION_PROPOSAL_CREATED',
+            title: 'New Revocation Proposal Pending Co-Approval',
+            message: `BEL Admin ${req.user.name} proposed revocation of ${identityId} (${identity.name}, ${identity.organization}). Reason: ${reason}`,
+            resourceType: 'identity',
+            resourceId: identityId
+        });
+
+        return sendSuccess(res, {
+            message: 'Revocation proposal submitted successfully. Pending Auditor co-approval.',
+            proposal
+        }, 201);
+    } catch (error) {
+        console.error('Propose revocation error:', error);
+        return handleControllerError(res, error, 'Unable to submit revocation proposal');
+    }
+}
+
+async function approveRevocation(req, res) {
+    try {
+        const { identityId } = req.params;
+        const { proposalId } = req.body || {};
+
+        assertSafeId(identityId, 'identityId');
+
+        let targetProposalId = proposalId;
+        if (!targetProposalId) {
+            const pending = await getPendingProposalByIdentityId(identityId);
+            if (!pending) {
+                return sendError(res, 404, `No pending revocation proposal found for identity ${identityId}`, 'NOT_FOUND');
+            }
+            targetProposalId = pending.proposalId;
+        }
+
+        const result = await approveRevocationProposal(targetProposalId, req.user.userId);
+
+        recordFromRequest(req, {
+            action: 'IDENTITY_REVOCATION_APPROVED',
             resourceType: 'identity',
             resourceId: identityId,
             success: true
@@ -213,27 +286,69 @@ async function revokeExistingIdentity(req, res) {
         createNotification({
             userId: identityId,
             type: 'IDENTITY_REVOKED',
-            title: 'Identity revoked',
-            message: `Identity ${identityId} was revoked on blockchain and CA`,
+            title: 'Identity Revoked via Co-Approval',
+            message: `Identity ${identityId} was revoked following co-approval by Auditor ${req.user.name}`,
             resourceType: 'identity',
             resourceId: identityId
         });
 
         return sendSuccess(res, {
-            message: 'Identity revoked successfully on blockchain and Fabric CA',
-            identity,
-            ca: caRevocation
+            message: 'Identity revocation co-approved and executed on Fabric ledger and CA',
+            ...result
         });
     } catch (error) {
-        console.error('Revoke identity error:', error);
+        console.error('Approve revocation error:', error);
+        return handleControllerError(res, error, 'Unable to approve revocation proposal');
+    }
+}
+
+async function rejectRevocation(req, res) {
+    try {
+        const { identityId } = req.params;
+        const { proposalId, rejectionReason } = req.body || {};
+
+        assertSafeId(identityId, 'identityId');
+
+        let targetProposalId = proposalId;
+        if (!targetProposalId) {
+            const pending = await getPendingProposalByIdentityId(identityId);
+            if (!pending) {
+                return sendError(res, 404, `No pending revocation proposal found for identity ${identityId}`, 'NOT_FOUND');
+            }
+            targetProposalId = pending.proposalId;
+        }
+
+        const proposal = await rejectRevocationProposal(targetProposalId, req.user.userId, rejectionReason);
+
         recordFromRequest(req, {
-            action: 'IDENTITY_REVOKED',
+            action: 'IDENTITY_REVOCATION_REJECTED',
             resourceType: 'identity',
-            resourceId: req.params.identityId,
-            success: false,
-            message: error.message
+            resourceId: identityId,
+            success: true
         });
-        return handleControllerError(res, error, 'Unable to revoke identity');
+
+        return sendSuccess(res, {
+            message: 'Revocation proposal rejected',
+            proposal
+        });
+    } catch (error) {
+        console.error('Reject revocation error:', error);
+        return handleControllerError(res, error, 'Unable to reject revocation proposal');
+    }
+}
+
+async function listRevocationProposals(req, res) {
+    try {
+        const { status } = req.query;
+        let proposals;
+        if (status === 'PENDING') {
+            proposals = await getPendingRevocationProposals();
+        } else {
+            proposals = await getRevocationProposals();
+        }
+        return sendSuccess(res, { proposals });
+    } catch (error) {
+        return handleControllerError(res, error, 'Unable to fetch revocation proposals');
     }
 }
 
@@ -288,6 +403,10 @@ module.exports = {
     createIdentity,
     fetchIdentity,
     revokeExistingIdentity,
+    proposeRevocation,
+    approveRevocation,
+    rejectRevocation,
+    listRevocationProposals,
     getIdentityDID,
     checkCAHealthController
 };
