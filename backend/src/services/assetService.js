@@ -43,10 +43,15 @@ async function getAssetHistory(assetId, organization = 'BEL') {
     return fabricService.getAssetHistory(assetId, organization);
 }
 
+async function getTransactionDetails(txId, organization = 'BEL') {
+    return fabricService.getTransactionDetails(txId, organization);
+}
+
 module.exports = {
     mintAsset,
     getAsset,
     transferAsset,
     updateAssetDocument,
-    getAssetHistory
+    getAssetHistory,
+    getTransactionDetails
 };

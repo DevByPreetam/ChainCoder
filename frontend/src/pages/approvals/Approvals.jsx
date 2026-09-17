@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import Sidebar from "../../components/layout/Sidebar";
 import Topbar from "../../components/layout/Topbar";
@@ -22,6 +22,11 @@ import {
   approveDeletionProposal,
   rejectDeletionProposal,
 } from "../../services/assetService";
+import {
+  getRevocationProposals,
+  approveIdentityRevocation,
+  rejectIdentityRevocation,
+} from "../../services/identityService";
 
 import "../../styles/layout.css";
 import "../../styles/assets.css";
@@ -30,6 +35,7 @@ import "../../styles/access-requests.css";
 
 function Approvals() {
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const isBelApprover =
     user?.organization === "BEL" &&
@@ -39,9 +45,35 @@ function Approvals() {
 
   const isAuthorized = isBelApprover || isAuditor;
 
-  // Tabs: 'action_required' | 'all' | 'mint_proposals'
-  const [activeTab, setActiveTab] = useState("action_required");
+  const validTabs = [
+    "action_required",
+    "all",
+    "mint_proposals",
+    "deletion_proposals",
+    "revocation_proposals",
+  ];
+  const tabFromQuery = searchParams.get("tab");
+
+  // Tabs: 'action_required' | 'all' | 'mint_proposals' | 'deletion_proposals' | 'revocation_proposals'
+  const [activeTab, setActiveTab] = useState(
+    tabFromQuery && validTabs.includes(tabFromQuery) ? tabFromQuery : "action_required"
+  );
   const [statusFilter, setStatusFilter] = useState("ALL");
+
+  // Sync activeTab if searchParams change (e.g. user clicked notification while on approvals page)
+  useEffect(() => {
+    const currentTab = searchParams.get("tab");
+    if (currentTab && validTabs.includes(currentTab) && currentTab !== activeTab) {
+      setActiveTab(currentTab);
+    }
+  }, [searchParams]);
+
+  const handleSelectTab = (tab) => {
+    setActiveTab(tab);
+    setSearchParams({ tab });
+    setFeedback("");
+    setActionError("");
+  };
 
   // Data state
   const [requests, setRequests] = useState([]);
@@ -72,7 +104,13 @@ function Approvals() {
   const [rejectDeleteReason, setRejectDeleteReason] = useState("");
   const [approveDeleteTarget, setApproveDeleteTarget] = useState(null);
 
-  // Fetch all requests + mint proposals relevant to the approver
+  // Identity Revocation proposal state (multi-party governance)
+  const [revocationProposals, setRevocationProposals] = useState([]);
+  const [rejectRevokeTarget, setRejectRevokeTarget] = useState(null);
+  const [rejectRevokeReason, setRejectRevokeReason] = useState("");
+  const [approveRevokeTarget, setApproveRevokeTarget] = useState(null);
+
+  // Fetch all requests + proposals relevant to the approver
   async function loadApprovalData() {
     if (!isAuthorized) return;
 
@@ -83,7 +121,7 @@ function Approvals() {
       let data = [];
       if (isBelApprover) {
         data = await getAccessRequests();
-        // BEL Admin/Manager can also see all mint proposals and deletion proposals
+        // BEL Admin/Manager can also see all mint proposals, deletion proposals, and revocation proposals
         try {
           const proposals = await getAllMintProposals();
           setMintProposals(Array.isArray(proposals) ? proposals : []);
@@ -96,9 +134,15 @@ function Approvals() {
         } catch (e) {
           console.warn("Could not load deletion proposals:", e.message);
         }
+        try {
+          const revProposals = await getRevocationProposals();
+          setRevocationProposals(Array.isArray(revProposals) ? revProposals : []);
+        } catch (e) {
+          console.warn("Could not load revocation proposals:", e.message);
+        }
       } else if (isAuditor) {
         data = await getAuditorAccessRequests();
-        // Auditor fetches pending mint proposals & pending deletion proposals
+        // Auditor fetches pending mint proposals, deletion proposals, and revocation proposals
         try {
           const proposals = await getPendingMintProposals();
           setMintProposals(Array.isArray(proposals) ? proposals : []);
@@ -110,6 +154,12 @@ function Approvals() {
           setDeletionProposals(Array.isArray(delProposals) ? delProposals : []);
         } catch (e) {
           console.warn("Could not load pending deletion proposals:", e.message);
+        }
+        try {
+          const revProposals = await getRevocationProposals();
+          setRevocationProposals(Array.isArray(revProposals) ? revProposals : []);
+        } catch (e) {
+          console.warn("Could not load revocation proposals:", e.message);
         }
       }
 
@@ -135,11 +185,12 @@ function Approvals() {
     const active = requests.filter((r) => r.status === "ACTIVE").length;
     const rejected = requests.filter((r) => r.status === "REJECTED").length;
     const pendingDeletions = deletionProposals.filter((p) => p.status === "PENDING").length;
+    const pendingRevocations = revocationProposals.filter((p) => p.status === "PENDING").length;
 
     const actionNeeded = isBelApprover
       ? pending
       : isAuditor
-      ? belApproved + pendingDeletions
+      ? belApproved + pendingDeletions + pendingRevocations
       : 0;
 
     return {
@@ -149,9 +200,10 @@ function Approvals() {
       active,
       rejected,
       pendingDeletions,
+      pendingRevocations,
       total: requests.length,
     };
-  }, [requests, deletionProposals, isBelApprover, isAuditor]);
+  }, [requests, deletionProposals, revocationProposals, isBelApprover, isAuditor]);
 
   // Filtered requests for the current tab
   const displayedRequests = useMemo(() => {
@@ -320,6 +372,52 @@ function Approvals() {
       setActionLoading(false);
     }
   }
+
+  async function handleConfirmApproveRevocation() {
+    if (!approveRevokeTarget) return;
+    try {
+      setActionLoading(true);
+      setActionError("");
+      setFeedback("");
+
+      await approveIdentityRevocation(approveRevokeTarget.identityId, approveRevokeTarget.proposalId);
+      setFeedback(
+        `Identity revocation co-approved! Identity "${approveRevokeTarget.identityId}" is now permanently REVOKED on Hyperledger Fabric and Fabric CA.`
+      );
+      setApproveRevokeTarget(null);
+      loadApprovalData();
+    } catch (err) {
+      setActionError(err.message || "Failed to co-approve identity revocation.");
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
+  async function handleConfirmRejectRevocation() {
+    if (!rejectRevokeTarget) return;
+    try {
+      setActionLoading(true);
+      setActionError("");
+      setFeedback("");
+
+      await rejectIdentityRevocation(
+        rejectRevokeTarget.identityId,
+        rejectRevokeTarget.proposalId,
+        rejectRevokeReason.trim()
+      );
+      setFeedback(
+        `Revocation proposal ${rejectRevokeTarget.proposalId} rejected. Identity "${rejectRevokeTarget.identityId}" remains active.`
+      );
+      setRejectRevokeTarget(null);
+      setRejectRevokeReason("");
+      loadApprovalData();
+    } catch (err) {
+      setActionError(err.message || "Failed to reject revocation proposal.");
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
 
   function getStatusBadge(status) {
     switch (status) {
@@ -498,11 +596,7 @@ function Approvals() {
                   className={`access-tab-btn ${
                     activeTab === "action_required" ? "active" : ""
                   }`}
-                  onClick={() => {
-                    setActiveTab("action_required");
-                    setFeedback("");
-                    setActionError("");
-                  }}
+                  onClick={() => handleSelectTab("action_required")}
                 >
                   <span>⚡</span> Action Required by You ({stats.actionNeeded})
                 </button>
@@ -512,11 +606,7 @@ function Approvals() {
                   className={`access-tab-btn ${
                     activeTab === "all" ? "active" : ""
                   }`}
-                  onClick={() => {
-                    setActiveTab("all");
-                    setFeedback("");
-                    setActionError("");
-                  }}
+                  onClick={() => handleSelectTab("all")}
                 >
                   <span>📑</span> All Approval Requests ({stats.total})
                 </button>
@@ -526,11 +616,7 @@ function Approvals() {
                   className={`access-tab-btn ${
                     activeTab === "mint_proposals" ? "active" : ""
                   }`}
-                  onClick={() => {
-                    setActiveTab("mint_proposals");
-                    setFeedback("");
-                    setActionError("");
-                  }}
+                  onClick={() => handleSelectTab("mint_proposals")}
                   style={{ borderColor: activeTab === "mint_proposals" ? "#7c3aed" : undefined }}
                 >
                   <span>🏭</span> Mint Proposals ({mintProposals.length})
@@ -554,11 +640,7 @@ function Approvals() {
                   className={`access-tab-btn ${
                     activeTab === "deletion_proposals" ? "active" : ""
                   }`}
-                  onClick={() => {
-                    setActiveTab("deletion_proposals");
-                    setFeedback("");
-                    setActionError("");
-                  }}
+                  onClick={() => handleSelectTab("deletion_proposals")}
                   style={{ borderColor: activeTab === "deletion_proposals" ? "#ef4444" : undefined }}
                 >
                   <span>🗑️</span> Deletion Proposals ({deletionProposals.length})
@@ -573,6 +655,30 @@ function Approvals() {
                       fontWeight: 700
                     }}>
                       {deletionProposals.filter(p => p.status === "PENDING").length} pending
+                    </span>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  className={`access-tab-btn ${
+                    activeTab === "revocation_proposals" ? "active" : ""
+                  }`}
+                  onClick={() => handleSelectTab("revocation_proposals")}
+                  style={{ borderColor: activeTab === "revocation_proposals" ? "#ea580c" : undefined }}
+                >
+                  <span>🚫</span> Identity Revocations ({revocationProposals.length})
+                  {isAuditor && stats.pendingRevocations > 0 && (
+                    <span style={{
+                      marginLeft: "6px",
+                      background: "#ea580c",
+                      color: "#fff",
+                      borderRadius: "10px",
+                      padding: "1px 7px",
+                      fontSize: "11px",
+                      fontWeight: 700
+                    }}>
+                      {stats.pendingRevocations} pending
                     </span>
                   )}
                 </button>
@@ -1022,7 +1128,164 @@ function Approvals() {
                 </div>
               )}
 
+              {/* ─── IDENTITY REVOCATION PROPOSALS SECTION ─────────────────── */}
+              {activeTab === "revocation_proposals" && (
+                <div className="access-table-card" style={{ marginTop: "20px" }}>
+                  <div className="access-table-header-row">
+                    <div>
+                      <h3>🚫 Identity Revocation Governance Queue</h3>
+                      <span style={{ fontSize: "12px", color: "#748095" }}>
+                        {isAuditor
+                          ? "Review identity revocation proposals submitted by BEL Administrators. Independent Auditor co-approval is required before on-chain ledger & CA revocation."
+                          : "Identity revocation proposals submitted to Auditor for multi-party co-approval."}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      className="asset-action-button"
+                      onClick={loadApprovalData}
+                      disabled={loading || actionLoading}
+                    >
+                      {loading ? "Refreshing..." : "↻ Refresh"}
+                    </button>
+                  </div>
+
+                  {loading && (
+                    <div className="asset-message">Loading revocation proposals...</div>
+                  )}
+
+                  {!loading && revocationProposals.length === 0 && (
+                    <div className="asset-empty">
+                      ✓ No identity revocation proposals found. All identities are in good standing.
+                    </div>
+                  )}
+
+                  {!loading && revocationProposals.length > 0 && (
+                    <div className="access-table-wrapper">
+                      <table className="access-table">
+                        <thead>
+                          <tr>
+                            <th>Proposal ID</th>
+                            <th>Target Identity</th>
+                            <th>Organization</th>
+                            <th>Proposed By</th>
+                            <th>Revocation Reason</th>
+                            <th>Status</th>
+                            <th>Submitted</th>
+                            <th>Decisions & Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {revocationProposals.map((rp) => (
+                            <tr key={rp.proposalId}>
+                              <td style={{ fontFamily: "monospace", fontSize: "10px", color: "#94a3b8" }}>
+                                {rp.proposalId}
+                              </td>
+                              <td>
+                                <div style={{ fontWeight: 700, color: "#f87171" }}>
+                                  {rp.identityId}
+                                </div>
+                              </td>
+                              <td>
+                                <div style={{ fontWeight: 600, color: "#e5e9ef" }}>{rp.organization || "BEL"}</div>
+                                <span className="org-tag" style={{ fontSize: "10px", marginTop: "2px" }}>
+                                  {rp.organization === "Contractor" ? "ContractorMSP" : rp.organization === "Auditor" ? "AuditorMSP" : "BELMSP"}
+                                </span>
+                              </td>
+                              <td>
+                                <div style={{ color: "#c4cdd9" }}>{rp.proposedByName || rp.proposedBy}</div>
+                                <div style={{ fontSize: "10px", color: "#748095" }}>BEL Admin</div>
+                              </td>
+                              <td style={{ maxWidth: "260px" }}>
+                                <div style={{
+                                  fontSize: "12px",
+                                  color: "#fca5a5",
+                                  background: "rgba(127, 29, 29, 0.2)",
+                                  padding: "6px 10px",
+                                  borderRadius: "4px",
+                                  borderLeft: "3px solid #ef4444"
+                                }}>
+                                  "{rp.reason}"
+                                </div>
+                              </td>
+                              <td>
+                                {rp.status === "PENDING" && (
+                                  <span className="access-badge status-badge-pending">⏳ PENDING AUDITOR</span>
+                                )}
+                                {rp.status === "APPROVED" && (
+                                  <span className="access-badge status-badge-rejected">● REVOKED ON-CHAIN</span>
+                                )}
+                                {rp.status === "REJECTED" && (
+                                  <span className="access-badge status-badge-bel-approved">✕ REJECTED (ACTIVE)</span>
+                                )}
+                              </td>
+                              <td className="access-table-time">
+                                {formatDate(rp.createdAt)}
+                              </td>
+                              <td>
+                                <div style={{ display: "flex", gap: "6px" }}>
+                                  {isAuditor && rp.status === "PENDING" && (
+                                    <>
+                                      <button
+                                        type="button"
+                                        className="btn-auditor-approve"
+                                        style={{ background: "#dc2626", borderColor: "#ef4444" }}
+                                        onClick={() => setApproveRevokeTarget(rp)}
+                                        disabled={actionLoading}
+                                        title="Co-approve revocation and revoke on Hyperledger Fabric"
+                                      >
+                                        🚫 Co-Approve
+                                      </button>
+                                      <button
+                                        type="button"
+                                        className="btn-reject"
+                                        onClick={() => {
+                                          setRejectRevokeTarget(rp);
+                                          setRejectRevokeReason("");
+                                        }}
+                                        disabled={actionLoading}
+                                        title="Reject revocation proposal"
+                                      >
+                                        Reject
+                                      </button>
+                                    </>
+                                  )}
+                                  {rp.status !== "PENDING" && (
+                                    <div style={{ fontSize: "11px", color: "#748095" }}>
+                                      {rp.status === "APPROVED" ? (
+                                        <>
+                                          <span style={{ color: "#ef4444", fontWeight: 600 }}>
+                                            ✓ Co-approved by {rp.auditorId || "Auditor"}
+                                          </span>
+                                          {rp.fabricTxId && (
+                                            <div
+                                              style={{ fontFamily: "monospace", fontSize: "10px", color: "#64748b", marginTop: "2px" }}
+                                              title={rp.fabricTxId}
+                                            >
+                                              Tx: {rp.fabricTxId.slice(0, 10)}...
+                                            </div>
+                                          )}
+                                        </>
+                                      ) : (
+                                        <span style={{ color: "#94a3b8" }}>
+                                          ✕ Rejected by {rp.auditorId || "Auditor"}
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* MINT PROPOSAL REJECT MODAL */}
+
               <ConfirmModal
                 isOpen={!!rejectMintTarget}
                 title="Reject Mint Proposal"
@@ -1139,6 +1402,85 @@ function Approvals() {
                   if (!actionLoading) setRejectDeleteTarget(null);
                 }}
               />
+
+              {/* CO-APPROVE IDENTITY REVOCATION MODAL */}
+              <ConfirmModal
+                isOpen={!!approveRevokeTarget}
+                title="Co-Approve Identity Revocation (Multi-Party Governance)"
+                message={
+                  <div>
+                    <p style={{ margin: "0 0 10px", color: "#f87171" }}>
+                      Are you sure you want to co-approve the permanent revocation of identity{" "}
+                      <strong>{approveRevokeTarget?.identityId}</strong> ({approveRevokeTarget?.organization})?
+                    </p>
+                    <div style={{
+                      background: "#1e1b2e",
+                      border: "1px solid #7f1d1d",
+                      borderRadius: "6px",
+                      padding: "10px",
+                      fontSize: "12px",
+                      color: "#fecaca"
+                    }}>
+                      <strong>BEL Admin Revocation Justification:</strong>
+                      <div style={{ marginTop: "4px", fontStyle: "italic" }}>
+                        "{approveRevokeTarget?.reason}"
+                      </div>
+                    </div>
+                    <p style={{ marginTop: "10px", fontSize: "12px", color: "#94a3b8" }}>
+                      ⚠️ <strong>Ledger Impact:</strong> Co-approving executes an on-chain RevokeIdentity transaction on Hyperledger Fabric and revokes user certificates in the Fabric CA. This identity will no longer be permitted to log in or interact with the ledger.
+                    </p>
+                  </div>
+                }
+                confirmText="Co-Approve & Revoke"
+                cancelText="Cancel"
+                confirmVariant="danger"
+                loading={actionLoading}
+                onConfirm={handleConfirmApproveRevocation}
+                onClose={() => {
+                  if (!actionLoading) setApproveRevokeTarget(null);
+                }}
+              />
+
+              {/* REJECT IDENTITY REVOCATION MODAL */}
+              <ConfirmModal
+                isOpen={!!rejectRevokeTarget}
+                title="Reject Identity Revocation Proposal"
+                message={
+                  <div>
+                    <p style={{ margin: "0 0 10px" }}>
+                      Are you sure you want to reject the revocation proposal for identity{" "}
+                      <strong>{rejectRevokeTarget?.identityId}</strong>?
+                      The identity will remain <strong>ACTIVE</strong> on Hyperledger Fabric.
+                    </p>
+                    <label
+                      style={{
+                        fontSize: "11px",
+                        color: "#8b98a9",
+                        display: "block",
+                        marginTop: "12px",
+                      }}
+                    >
+                      Rejection Reason (Optional):
+                    </label>
+                    <input
+                      type="text"
+                      className="reject-reason-input"
+                      placeholder="e.g. Insufficient justification or credentials still valid"
+                      value={rejectRevokeReason}
+                      onChange={(e) => setRejectRevokeReason(e.target.value)}
+                    />
+                  </div>
+                }
+                confirmText="Reject Proposal"
+                cancelText="Cancel"
+                confirmVariant="danger"
+                loading={actionLoading}
+                onConfirm={handleConfirmRejectRevocation}
+                onClose={() => {
+                  if (!actionLoading) setRejectRevokeTarget(null);
+                }}
+              />
+
 
               {/* REQUEST REVIEW INSPECTION MODAL */}
 

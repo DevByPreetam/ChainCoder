@@ -15,7 +15,8 @@ const {
     uploadAssetDocument,
     verifyAssetDocument,
     downloadAssetDocument,
-    fetchAssetHistory
+    fetchAssetHistory,
+    fetchAssetTransaction
 } = require('../controllers/assetController');
 
 const {
@@ -249,6 +250,12 @@ router.get(
     '/:assetId/history',
     authenticate,
     fetchAssetHistory
+);
+
+router.get(
+    '/:assetId/transaction/:txId',
+    authenticate,
+    fetchAssetTransaction
 );
 
 router.get(

@@ -9,7 +9,7 @@
   flex-wrap: wrap;
   gap: 16px;
   padding: 22px 24px;
-  background: linear-gradient(135deg, rgba(37, 99, 235, 0.08) 0%, rgba(16, 22, 36, 0.6) 100%);
+  background: linear-gradient(135deg, var(--primary-subtle) 0%, var(--bg-card) 100%);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
   margin-bottom: 24px;
@@ -18,7 +18,7 @@
 .welcome-text h2 {
   font-size: 20px;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--text-primary);
   margin: 0 0 4px;
 }
 
@@ -66,13 +66,79 @@
   padding: 20px;
   display: flex;
   flex-direction: column;
+  position: relative;
+  overflow: hidden;
   transition: transform var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--primary);
+  opacity: 0.8;
 }
 
 .stat-card:hover {
   transform: translateY(-2px);
   border-color: var(--border-default);
   box-shadow: var(--shadow-md);
+}
+
+/* Color Scheme Variants */
+.stat-card.variant-cyan::before {
+  background: var(--accent-cyan);
+}
+.stat-card.variant-cyan .stat-card-icon-wrap {
+  background: var(--accent-cyan-bg);
+  border-color: var(--accent-cyan-border);
+  color: var(--accent-cyan);
+}
+.stat-card.variant-cyan .stat-card-trend {
+  background: var(--accent-cyan-bg);
+  color: var(--accent-cyan);
+}
+
+.stat-card.variant-purple::before {
+  background: var(--accent-purple);
+}
+.stat-card.variant-purple .stat-card-icon-wrap {
+  background: var(--accent-purple-bg);
+  border-color: var(--accent-purple-border);
+  color: var(--accent-purple);
+}
+.stat-card.variant-purple .stat-card-trend {
+  background: var(--accent-purple-bg);
+  color: var(--accent-purple);
+}
+
+.stat-card.variant-amber::before {
+  background: var(--warning);
+}
+.stat-card.variant-amber .stat-card-icon-wrap {
+  background: var(--warning-bg);
+  border-color: var(--warning-border);
+  color: var(--warning);
+}
+.stat-card.variant-amber .stat-card-trend {
+  background: var(--warning-bg);
+  color: var(--warning);
+}
+
+.stat-card.variant-emerald::before {
+  background: var(--success);
+}
+.stat-card.variant-emerald .stat-card-icon-wrap {
+  background: var(--success-bg);
+  border-color: var(--success-border);
+  color: var(--success);
+}
+.stat-card.variant-emerald .stat-card-trend {
+  background: var(--success-bg);
+  color: var(--success);
 }
 
 .stat-card-top {
@@ -90,22 +156,23 @@
 }
 
 .stat-card-icon-wrap {
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
   color: var(--primary-light);
+  transition: all var(--transition-fast);
 }
 
 .stat-card-value {
   margin: 14px 0 6px;
   font-size: 32px;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--text-primary);
   letter-spacing: -0.5px;
 }
 
@@ -126,7 +193,7 @@
   font-weight: 700;
   color: #34d399;
   background: var(--success-bg);
-  padding: 2px 6px;
+  padding: 2px 8px;
   border-radius: var(--radius-full);
 }
 
@@ -148,7 +215,7 @@
   margin: 0 0 3px;
   font-size: 16px;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--text-primary);
 }
 
 .section-header p {
@@ -173,7 +240,7 @@
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   text-decoration: none;
-  color: #ffffff;
+  color: var(--text-primary);
   transition: all var(--transition-fast);
   position: relative;
 }
@@ -209,7 +276,7 @@
 
 .quick-action-header strong {
   font-size: 13px;
-  color: #ffffff;
+  color: var(--text-primary);
 }
 
 .quick-action-badge {
@@ -217,8 +284,8 @@
   font-weight: 700;
   padding: 1px 6px;
   border-radius: 4px;
-  background: rgba(255, 255, 255, 0.08);
-  color: var(--text-secondary);
+  background: var(--primary-subtle);
+  color: var(--primary-light);
   text-transform: uppercase;
 }
 
@@ -259,7 +326,7 @@
   text-transform: uppercase;
   letter-spacing: 0.6px;
   border-bottom: 1px solid var(--border-subtle);
-  background: rgba(10, 14, 24, 0.6);
+  background: var(--bg-surface);
 }
 
 .enterprise-table td {
@@ -274,7 +341,7 @@
 }
 
 .enterprise-table tbody tr:hover {
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--bg-card-hover);
 }
 
 .enterprise-table tbody tr:last-child td {
@@ -297,7 +364,7 @@
 .table-action-name {
   font-size: 13px;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--text-primary);
 }
 
 .table-resource-pill {

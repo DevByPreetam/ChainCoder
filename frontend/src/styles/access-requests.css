@@ -7,9 +7,9 @@
   align-items: center;
   justify-content: space-between;
   padding: 16px 20px;
-  background: #080b12;
-  border: 1px solid #1c2636;
-  border-radius: 12px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
   margin-bottom: 24px;
   overflow-x: auto;
 }
@@ -32,27 +32,27 @@
 }
 
 .step-contractor {
-  background: #192330;
-  border: 1px solid #2d3e56;
-  color: #93c5fd;
+  background: var(--info-bg);
+  border: 1px solid var(--info-border);
+  color: var(--info);
 }
 
 .step-bel {
-  background: #2b2210;
-  border: 1px solid #4a3a1b;
-  color: #fcd34d;
+  background: var(--warning-bg);
+  border: 1px solid var(--warning-border);
+  color: var(--warning);
 }
 
 .step-auditor {
-  background: #1c2636;
-  border: 1px solid #38bdf8;
-  color: #38bdf8;
+  background: var(--accent-purple-bg);
+  border: 1px solid var(--accent-purple-border);
+  color: var(--accent-purple);
 }
 
 .step-active {
-  background: #17251e;
-  border: 1px solid #284233;
-  color: #86efac;
+  background: var(--success-bg);
+  border: 1px solid var(--success-border);
+  color: var(--success);
 }
 
 .request-step-info {
@@ -63,16 +63,16 @@
 .request-step-title {
   font-size: 12px;
   font-weight: 600;
-  color: #e5e9ef;
+  color: var(--text-primary);
 }
 
 .request-step-role {
   font-size: 10px;
-  color: #748095;
+  color: var(--text-muted);
 }
 
 .request-step-arrow {
-  color: #374151;
+  color: var(--border-default);
   font-size: 18px;
 }
 
@@ -81,27 +81,27 @@
    =================================== */
 
 .status-badge-pending {
-  background: #2b2210;
-  color: #fbbf24;
-  border: 1px solid #4a3a1b;
+  background: var(--warning-bg);
+  color: var(--warning);
+  border: 1px solid var(--warning-border);
 }
 
 .status-badge-bel-approved {
-  background: #11263c;
-  color: #38bdf8;
-  border: 1px solid #1e4976;
+  background: var(--info-bg);
+  color: var(--info);
+  border: 1px solid var(--info-border);
 }
 
 .status-badge-active {
-  background: #17251e;
-  color: #86efac;
-  border: 1px solid #284233;
+  background: var(--success-bg);
+  color: var(--success);
+  border: 1px solid var(--success-border);
 }
 
 .status-badge-rejected {
-  background: #2b1717;
-  color: #f87171;
-  border: 1px solid #4a2727;
+  background: var(--danger-bg);
+  color: var(--danger);
+  border: 1px solid var(--danger-border);
 }
 
 /* ===================================
@@ -110,52 +110,53 @@
 
 .btn-approve {
   padding: 8px 14px;
-  background: #17251e;
-  border: 1px solid #284233;
-  border-radius: 7px;
-  color: #86efac;
+  background: var(--success-bg);
+  border: 1px solid var(--success-border);
+  border-radius: var(--radius-sm);
+  color: var(--success);
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
-  transition: 0.2s;
+  transition: all var(--transition-fast);
 }
 
 .btn-approve:hover {
-  background: #1f3328;
-  color: #a7f3d0;
+  background: var(--success);
+  color: #ffffff;
 }
 
 .btn-reject {
   padding: 8px 14px;
-  background: #2b1717;
-  border: 1px solid #4a2727;
-  border-radius: 7px;
-  color: #f87171;
+  background: var(--danger-bg);
+  border: 1px solid var(--danger-border);
+  border-radius: var(--radius-sm);
+  color: var(--danger);
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
-  transition: 0.2s;
+  transition: all var(--transition-fast);
 }
 
 .btn-reject:hover {
-  background: #3b1d1d;
-  color: #fca5a5;
+  background: var(--danger);
+  color: #ffffff;
 }
 
 .btn-auditor-approve {
   padding: 8px 16px;
-  background: #0c4a6e;
-  border: 1px solid #0284c7;
-  border-radius: 7px;
-  color: #e0f2fe;
+  background: var(--primary);
+  border: 1px solid var(--primary-hover);
+  border-radius: var(--radius-sm);
+  color: #ffffff;
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
-  transition: 0.2s;
+  transition: all var(--transition-fast);
 }
 
 .btn-auditor-approve:hover {
-  background: #0369a1;
+  background: var(--primary-hover);
+  box-shadow: 0 0 12px var(--primary-glow);
 }
 
 /* ===================================
@@ -170,26 +171,27 @@
 }
 
 .filter-pill {
-  padding: 6px 12px;
-  background: #0f151e;
-  border: 1px solid #252f3e;
-  border-radius: 20px;
+  padding: 6px 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full);
   font-size: 11px;
   font-weight: 600;
-  color: #8b98a9;
+  color: var(--text-secondary);
   cursor: pointer;
-  transition: 0.2s;
+  transition: all var(--transition-fast);
 }
 
 .filter-pill:hover {
-  color: #ffffff;
-  border-color: #3e4c60;
+  color: var(--text-primary);
+  border-color: var(--border-default);
+  background: var(--bg-card-hover);
 }
 
 .filter-pill.active {
-  background: #1e293b;
-  color: #ffffff;
-  border-color: #475569;
+  background: var(--primary-subtle);
+  color: var(--primary-light);
+  border-color: var(--border-focus);
 }
 
 /* ===================================
@@ -199,17 +201,18 @@
 .reject-reason-input {
   width: 100%;
   padding: 10px 12px;
-  background: #080b12;
-  border: 1px solid #303a4a;
-  border-radius: 8px;
-  color: #ffffff;
+  background: var(--bg-input);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
   font-size: 13px;
   margin-top: 10px;
   box-sizing: border-box;
+  transition: border-color var(--transition-fast);
 }
 
 .reject-reason-input:focus {
-  border-color: #64748b;
+  border-color: var(--border-focus);
   outline: none;
 }
 
@@ -237,7 +240,7 @@
 
 .request-detail-value {
   font-size: 13px;
-  color: #e5e9ef;
+  color: var(--text-primary);
   font-weight: 500;
 }
 
@@ -269,20 +272,26 @@
 }
 
 .approval-stat-card {
-  background: #0f151e;
-  border: 1px solid #252f3e;
-  border-radius: 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
   padding: 16px 18px;
   display: flex;
   flex-direction: column;
   gap: 6px;
   position: relative;
   overflow: hidden;
+  transition: transform var(--transition-fast), border-color var(--transition-fast);
+}
+
+.approval-stat-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--border-default);
 }
 
 .approval-stat-card.stat-action-needed {
-  border-color: #f59e0b;
-  background: #14161a;
+  border-color: var(--warning);
+  background: var(--bg-card);
 }
 
 .approval-stat-card.stat-action-needed::before {
@@ -292,42 +301,42 @@
   left: 0;
   right: 0;
   height: 3px;
-  background: #f59e0b;
+  background: var(--warning);
 }
 
 .approval-stat-card.stat-pending {
-  border-left: 3px solid #fbbf24;
+  border-left: 3px solid var(--warning);
 }
 
 .approval-stat-card.stat-bel-approved {
-  border-left: 3px solid #38bdf8;
+  border-left: 3px solid var(--info);
 }
 
 .approval-stat-card.stat-active {
-  border-left: 3px solid #4ade80;
+  border-left: 3px solid var(--success);
 }
 
 .approval-stat-card.stat-rejected {
-  border-left: 3px solid #f87171;
+  border-left: 3px solid var(--danger);
 }
 
 .approval-stat-count {
   font-size: 26px;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--text-primary);
 }
 
 .approval-stat-label {
   font-size: 11px;
   font-weight: 600;
-  color: #8b98a9;
+  color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.4px;
 }
 
 .approval-stat-desc {
   font-size: 11px;
-  color: #5d6a7d;
+  color: var(--text-muted);
 }
 
 /* ===================================
@@ -339,33 +348,33 @@
   align-items: center;
   gap: 6px;
   padding: 4px 10px;
-  border-radius: 6px;
+  border-radius: var(--radius-full);
   font-size: 11px;
   font-weight: 600;
 }
 
 .stage-pill-pending {
-  background: #231c0e;
-  color: #fbbf24;
-  border: 1px solid #453617;
+  background: var(--warning-bg);
+  color: var(--warning);
+  border: 1px solid var(--warning-border);
 }
 
 .stage-pill-awaiting-auditor {
-  background: #0e2033;
-  color: #38bdf8;
-  border: 1px solid #16426a;
+  background: var(--info-bg);
+  color: var(--info);
+  border: 1px solid var(--info-border);
 }
 
 .stage-pill-active {
-  background: #13241b;
-  color: #4ade80;
-  border: 1px solid #1f4730;
+  background: var(--success-bg);
+  color: var(--success);
+  border: 1px solid var(--success-border);
 }
 
 .stage-pill-rejected {
-  background: #281414;
-  color: #f87171;
-  border: 1px solid #4f2121;
+  background: var(--danger-bg);
+  color: var(--danger);
+  border: 1px solid var(--danger-border);
 }
 
 .stage-pill-urgent {

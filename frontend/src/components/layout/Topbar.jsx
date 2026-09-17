@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { useTheme } from "../../context/ThemeContext";
 import { useNotifications } from "../../context/NotificationContext";
 import {
   getNotificationMeta,
@@ -15,7 +16,8 @@ function Topbar({
   subtitle = "Overview of your ChainCoder activity",
   onMenuClick = () => {},
 }) {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const { isDark, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const {
     notifications,
@@ -29,6 +31,9 @@ function Topbar({
   const [isOpen, setIsOpen] = useState(false);
   const popoverRef = useRef(null);
 
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const profileRef = useRef(null);
+
   const handleToggle = () => {
     const nextState = !isOpen;
     setIsOpen(nextState);
@@ -38,30 +43,32 @@ function Topbar({
     }
   };
 
-  // Close on outside click or Escape
+  // Close notifications or profile on outside click or Escape
   useEffect(() => {
     function handleClickOutside(e) {
       if (popoverRef.current && !popoverRef.current.contains(e.target)) {
         setIsOpen(false);
+      }
+      if (profileRef.current && !profileRef.current.contains(e.target)) {
+        setIsProfileOpen(false);
       }
     }
 
     function handleKeyDown(e) {
       if (e.key === "Escape") {
         setIsOpen(false);
+        setIsProfileOpen(false);
       }
     }
 
-    if (isOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-      document.addEventListener("keydown", handleKeyDown);
-    }
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleKeyDown);
 
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [isOpen]);
+  }, []);
 
   const handleNotificationClick = async (notif) => {
     if (!notif.read) {
@@ -77,6 +84,14 @@ function Topbar({
     const meta = getNotificationMeta(notif, user);
     if (meta.targetPath) {
       navigate(meta.targetPath);
+    } else if (
+      user?.role === "Auditor" ||
+      user?.role === "Admin" ||
+      user?.role === "Manager"
+    ) {
+      navigate("/approvals");
+    } else {
+      navigate("/notifications");
     }
   };
 
@@ -205,16 +220,90 @@ function Topbar({
           )}
         </div>
 
-        {/* User Chip */}
-        <div className="topbar-user" title={`Logged in as ${user?.name} (${user?.role})`}>
-          <div className="topbar-avatar">
-            {user?.name?.charAt(0)?.toUpperCase() || "U"}
+        {/* Theme Toggle Button */}
+        <button
+          type="button"
+          className="theme-toggle-btn"
+          onClick={toggleTheme}
+          title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+          aria-label={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+        >
+          <Icon name={isDark ? "sun" : "moon"} size={17} />
+        </button>
+
+        <div className="topbar-divider" />
+
+        {/* User Profile Popover */}
+        <div className="topbar-profile-wrapper" ref={profileRef}>
+          <div
+            className={`topbar-user ${isProfileOpen ? "active" : ""}`}
+            onClick={() => setIsProfileOpen((prev) => !prev)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && setIsProfileOpen((prev) => !prev)}
+            aria-haspopup="true"
+            aria-expanded={isProfileOpen}
+            title={`Account: ${user?.name || "Participant"} (${user?.role})`}
+          >
+            <div className="topbar-avatar">
+              {user?.name?.charAt(0)?.toUpperCase() || "U"}
+            </div>
+
+            <div className="topbar-user-info">
+              <strong>{user?.name || "Participant"}</strong>
+              <span className="topbar-user-role">{user?.organization} · {user?.role}</span>
+            </div>
+
+            <Icon
+              name="chevron-down"
+              size={13}
+              className={`profile-chevron ${isProfileOpen ? "open" : ""}`}
+            />
           </div>
 
-          <div className="topbar-user-info">
-            <strong>{user?.name || "Participant"}</strong>
-            <span className="topbar-user-role">{user?.organization} · {user?.role}</span>
-          </div>
+          {/* Profile Popover Card */}
+          {isProfileOpen && (
+            <div className="profile-popover" role="dialog" aria-label="User profile details">
+              <div className="profile-popover-header">
+                <div className="profile-popover-avatar">
+                  {user?.name?.charAt(0)?.toUpperCase() || "U"}
+                </div>
+                <div className="profile-popover-meta">
+                  <div className="profile-popover-name" title={user?.name}>
+                    {user?.name || "Participant"}
+                  </div>
+                  <span className="profile-popover-role-badge">
+                    {user?.role} · {user?.organization}
+                  </span>
+                </div>
+              </div>
+
+              <div className="profile-popover-id" title="Cryptographic Identity ID">
+                <span>Identity: </span>
+                <strong>{user?.userId || user?.username || "—"}</strong>
+              </div>
+
+              {user?.email && (
+                <div className="profile-popover-email" title="User Email">
+                  {user.email}
+                </div>
+              )}
+
+              <div className="profile-popover-divider" />
+
+              <button
+                type="button"
+                className="profile-popover-logout-btn"
+                onClick={() => {
+                  setIsProfileOpen(false);
+                  logout();
+                }}
+              >
+                <Icon name="logout" size={15} />
+                <span>Sign Out</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </header>

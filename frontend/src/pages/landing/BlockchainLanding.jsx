@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import "../../styles/blockchain-landing.css";
@@ -143,6 +143,12 @@ export default function BlockchainLanding() {
         <div className="bcl-nav-actions">
           <Link to="/verify" className="bcl-btn-secondary">
             🔍 Verify Document
+          </Link>
+          <Link
+            to={isAuthenticated ? "/dashboard" : "/login"}
+            className="bcl-btn-secondary"
+          >
+            📊 Dashboard
           </Link>
           <Link
             to={isAuthenticated ? "/dashboard" : "/login"}

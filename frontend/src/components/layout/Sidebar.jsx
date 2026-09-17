@@ -1,11 +1,14 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { useSidebar } from "../../context/SidebarContext";
 import { useNotifications } from "../../context/NotificationContext";
 import Icon from "../common/Icon";
 
 function Sidebar({ isOpen = false, onClose = () => {} }) {
   const { user, logout } = useAuth();
+  const { isCollapsed, toggleSidebar } = useSidebar();
   const { unreadCount } = useNotifications();
+  const navigate = useNavigate();
 
   // Navigation Items with functional role permissions matching backend
   const menuItems = [
@@ -112,6 +115,7 @@ function Sidebar({ isOpen = false, onClose = () => {} }) {
   const handleLogout = () => {
     onClose();
     logout();
+    navigate("/login", { replace: true });
   };
 
   return (
@@ -124,19 +128,33 @@ function Sidebar({ isOpen = false, onClose = () => {} }) {
       />
 
       {/* Main Sidebar */}
-      <aside className={`sidebar ${isOpen ? "open" : ""}`}>
+      <aside className={`sidebar ${isOpen ? "open" : ""} ${isCollapsed ? "collapsed" : ""}`}>
         {/* Brand Header */}
         <div className="sidebar-brand">
-          <NavLink to="/dashboard" className="brand-main" onClick={handleLinkClick}>
+          <NavLink to="/dashboard" className="brand-main" onClick={handleLinkClick} title="ChainCoder SIH 2026">
             <div className="sidebar-logo">
               <Icon name="shield" size={20} color="#ffffff" />
             </div>
-            <div className="sidebar-brand-text">
-              <h2>ChainCoder</h2>
-              <span className="sidebar-brand-badge">SIH 2026 DEFENSE</span>
-            </div>
+            {!isCollapsed && (
+              <div className="sidebar-brand-text">
+                <h2>ChainCoder</h2>
+                <span className="sidebar-brand-badge">SIH 2026 DEFENSE</span>
+              </div>
+            )}
           </NavLink>
 
+          {/* Desktop Collapse / Expand Toggle */}
+          <button
+            type="button"
+            className="sidebar-collapse-btn"
+            onClick={toggleSidebar}
+            title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            <Icon name={isCollapsed ? "chevron-right" : "chevron-left"} size={16} />
+          </button>
+
+          {/* Mobile Close Button */}
           <button
             type="button"
             className="sidebar-close-btn"
@@ -172,11 +190,12 @@ function Sidebar({ isOpen = false, onClose = () => {} }) {
                         `sidebar-link ${isActive ? "active" : ""}`
                       }
                       onClick={handleLinkClick}
+                      title={item.label}
                     >
                       <span className="sidebar-link-icon">
                         <Icon name={item.icon} size={17} />
                       </span>
-                      <span>{item.label}</span>
+                      {!isCollapsed && <span>{item.label}</span>}
                       {item.badge && (
                         <span className="sidebar-badge">{item.badge}</span>
                       )}
@@ -190,27 +209,34 @@ function Sidebar({ isOpen = false, onClose = () => {} }) {
 
         {/* User Profile & Logout Area */}
         <div className="sidebar-bottom">
-          <div className="sidebar-user">
+          <div
+            className="sidebar-user"
+            title={`${user?.name || "Participant"} (${user?.organization} · ${user?.role})`}
+          >
             <div className="sidebar-avatar">
               {user?.name?.charAt(0)?.toUpperCase() || "U"}
             </div>
 
-            <div className="sidebar-user-info">
-              <strong title={user?.name}>{user?.name || "Participant"}</strong>
-              <div className="sidebar-user-role-badge">
-                <span />
-                {user?.organization} · {user?.role}
+            {!isCollapsed && (
+              <div className="sidebar-user-info">
+                <strong title={user?.name}>{user?.name || "Participant"}</strong>
+                <div className="sidebar-user-role-badge">
+                  <span />
+                  {user?.organization} · {user?.role}
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           <button
             type="button"
             className="sidebar-logout"
             onClick={handleLogout}
+            title="Sign Out"
+            aria-label="Sign Out"
           >
             <Icon name="logout" size={15} />
-            <span>Sign Out</span>
+            {!isCollapsed && <span>Sign Out</span>}
           </button>
         </div>
       </aside>

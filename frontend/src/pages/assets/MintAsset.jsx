@@ -375,13 +375,6 @@ function MintAsset() {
                         {successAsset.documentHash}
                       </span>
                     </div>
-
-                    <div className="asset-info-item asset-info-wide">
-                      <span className="asset-info-label">Next Step</span>
-                      <span className="asset-info-value" style={{ color: "#fbbf24" }}>
-                        ℹ️ Log in as <strong>Auditor (AUD001)</strong> → <strong>Approvals</strong> → <strong>Mint Proposals</strong> tab → Co-Approve to write the asset to Hyperledger Fabric.
-                      </span>
-                    </div>
                   </div>
 
                   <div className="asset-actions" style={{ marginTop: "20px" }}>

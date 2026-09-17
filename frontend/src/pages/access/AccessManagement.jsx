@@ -592,15 +592,6 @@ function AccessManagement() {
                             )}
                           </span>
                         </div>
-
-                        {grantSuccess.status !== "ACTIVE" && (
-                          <div className="asset-info-item asset-info-wide">
-                            <span className="asset-info-label">Next Step</span>
-                            <span className="asset-info-value" style={{ color: "#fbbf24" }}>
-                              ℹ️ Log in as <strong>Auditor (AUD001)</strong> → <strong>Approvals Queue</strong> → click <strong>Co-Approve on Fabric</strong> to write this access grant to Hyperledger Fabric.
-                            </span>
-                          </div>
-                        )}
                       </div>
 
                       <div className="asset-actions" style={{ marginTop: "20px" }}>

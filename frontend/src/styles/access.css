@@ -6,34 +6,34 @@
   display: flex;
   gap: 10px;
   margin-bottom: 24px;
-  border-bottom: 1px solid #252f3e;
+  border-bottom: 1px solid var(--border-subtle);
   padding-bottom: 12px;
 }
 
 .access-tab-btn {
   background: transparent;
   border: none;
-  color: #748095;
+  color: var(--text-secondary);
   font-size: 13px;
   font-weight: 600;
   padding: 8px 16px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--transition-fast);
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
 .access-tab-btn:hover {
-  color: #ffffff;
-  background: #141b26;
+  color: var(--text-primary);
+  background: var(--bg-card-hover);
 }
 
 .access-tab-btn.active {
-  color: #ffffff;
-  background: #1c2636;
-  border: 1px solid #2d3d54;
+  color: var(--primary-light);
+  background: var(--primary-subtle);
+  border: 1px solid var(--border-focus);
 }
 
 /* ===================================
@@ -41,9 +41,9 @@
    =================================== */
 
 .access-search-card {
-  background: #0f151e;
-  border: 1px solid #252f3e;
-  border-radius: 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
   padding: 24px;
   margin-bottom: 24px;
 }
@@ -58,38 +58,41 @@
 .access-search-input {
   flex: 1;
   padding: 12px 14px;
-  background: #080b12;
-  border: 1px solid #252f3e;
-  border-radius: 9px;
-  color: #ffffff;
+  background: var(--bg-input);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
   font-size: 13px;
   outline: none;
   box-sizing: border-box;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .access-search-input:focus {
-  border-color: #64748b;
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px var(--primary-subtle);
 }
 
 .access-btn-primary {
   padding: 12px 22px;
-  background: #ffffff;
-  color: #080b12;
+  background: var(--primary);
+  color: #ffffff;
   border: none;
-  border-radius: 9px;
+  border-radius: var(--radius-sm);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
-  transition: opacity 0.2s;
+  transition: background-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
-.access-btn-primary:hover {
-  opacity: 0.9;
+.access-btn-primary:hover:not(:disabled) {
+  background: var(--primary-hover);
+  box-shadow: 0 0 12px var(--primary-glow);
 }
 
 .access-btn-primary:disabled {
-  opacity: 0.4;
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
@@ -98,9 +101,9 @@
    =================================== */
 
 .access-record-card {
-  background: #0f151e;
-  border: 1px solid #252f3e;
-  border-radius: 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
   padding: 24px;
   margin-bottom: 24px;
 }
@@ -111,13 +114,13 @@
   align-items: center;
   margin-bottom: 18px;
   padding-bottom: 14px;
-  border-bottom: 1px solid #1a2330;
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .access-record-header h3 {
   margin: 0;
   font-size: 17px;
-  color: #e5e9ef;
+  color: var(--text-primary);
 }
 
 .access-relationship-flow {
@@ -125,9 +128,9 @@
   align-items: center;
   gap: 14px;
   padding: 18px;
-  background: #080b12;
-  border: 1px solid #1c2636;
-  border-radius: 10px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
   margin-bottom: 20px;
 }
 
@@ -135,29 +138,30 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding: 10px 16px;
-  background: #121924;
-  border: 1px solid #273447;
-  border-radius: 8px;
+  padding: 12px 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
   flex: 1;
 }
 
 .access-entity-label {
   font-size: 11px;
-  color: #748095;
+  color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  font-weight: 600;
 }
 
 .access-entity-value {
   font-size: 14px;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--text-primary);
 }
 
 .access-arrow {
   font-size: 20px;
-  color: #4b5563;
+  color: var(--primary-light);
 }
 
 .access-grid-details {
@@ -175,12 +179,15 @@
 
 .access-detail-label {
   font-size: 11px;
-  color: #748095;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
 }
 
 .access-detail-value {
   font-size: 13px;
-  color: #e5e9ef;
+  color: var(--text-primary);
   font-weight: 500;
 }
 
@@ -190,41 +197,42 @@
 
 .access-badge {
   display: inline-block;
-  padding: 5px 10px;
-  border-radius: 6px;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.4px;
+  text-transform: uppercase;
 }
 
 .access-badge-active {
-  background: #17251e;
-  color: #83a995;
-  border: 1px solid #284233;
+  background: var(--success-bg);
+  color: var(--success);
+  border: 1px solid var(--success-border);
 }
 
 .access-badge-revoked {
-  background: #251717;
-  color: #a98383;
-  border: 1px solid #422828;
+  background: var(--danger-bg);
+  color: var(--danger);
+  border: 1px solid var(--danger-border);
 }
 
 .access-badge-pending {
-  background: #252217;
-  color: #a99d83;
-  border: 1px solid #423d28;
+  background: var(--warning-bg);
+  color: var(--warning);
+  border: 1px solid var(--warning-border);
 }
 
 .access-permission-tag {
   display: inline-block;
-  padding: 4px 8px;
-  background: #1a2230;
-  border: 1px solid #2e3a4e;
-  border-radius: 5px;
+  padding: 4px 10px;
+  background: var(--accent-purple-bg);
+  border: 1px solid var(--accent-purple-border);
+  border-radius: var(--radius-sm);
   font-size: 11px;
-  color: #93c5fd;
+  color: var(--accent-purple);
   font-weight: 600;
-  font-family: monospace;
+  font-family: var(--font-mono);
 }
 
 /* ===================================
@@ -233,19 +241,19 @@
 
 .access-btn-revoke {
   padding: 10px 18px;
-  background: #2b1717;
-  border: 1px solid #4a2727;
-  border-radius: 8px;
-  color: #f87171;
+  background: var(--danger-bg);
+  border: 1px solid var(--danger-border);
+  border-radius: var(--radius-sm);
+  color: var(--danger);
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
-  transition: 0.2s;
+  transition: all var(--transition-fast);
 }
 
-.access-btn-revoke:hover {
-  background: #3b1d1d;
-  color: #ef4444;
+.access-btn-revoke:hover:not(:disabled) {
+  background: var(--danger);
+  color: #ffffff;
 }
 
 .access-btn-revoke:disabled {
@@ -258,9 +266,9 @@
    =================================== */
 
 .access-form-card {
-  background: #0f151e;
-  border: 1px solid #252f3e;
-  border-radius: 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
   padding: 26px;
   margin-bottom: 24px;
 }
@@ -284,38 +292,42 @@
 .access-form-label {
   font-size: 12px;
   font-weight: 600;
-  color: #c7cfdb;
+  color: var(--text-secondary);
   display: flex;
   align-items: center;
   gap: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .access-form-input,
 .access-form-select {
   width: 100%;
   padding: 12px 14px;
-  background: #080b12;
-  border: 1px solid #252f3e;
-  border-radius: 9px;
-  color: #ffffff;
+  background: var(--bg-input);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
   font-size: 13px;
   outline: none;
   box-sizing: border-box;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .access-form-input:focus,
 .access-form-select:focus {
-  border-color: #64748b;
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px var(--primary-subtle);
 }
 
 .access-form-select option {
-  background: #0f151e;
-  color: #ffffff;
+  background: var(--bg-surface);
+  color: var(--text-primary);
 }
 
 .access-form-help {
   font-size: 11px;
-  color: #748095;
+  color: var(--text-muted);
 }
 
 .access-form-actions {
@@ -329,9 +341,9 @@
    =================================== */
 
 .access-table-card {
-  background: #0f151e;
-  border: 1px solid #252f3e;
-  border-radius: 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
   overflow: hidden;
   margin-bottom: 24px;
 }
@@ -341,13 +353,13 @@
   justify-content: space-between;
   align-items: center;
   padding: 18px 22px;
-  border-bottom: 1px solid #252f3e;
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .access-table-header-row h3 {
   margin: 0;
   font-size: 16px;
-  color: #e5e9ef;
+  color: var(--text-primary);
 }
 
 .access-table-wrapper {
@@ -362,10 +374,10 @@
 .access-table th {
   padding: 12px 18px;
   text-align: left;
-  color: #697588;
+  color: var(--text-muted);
   font-size: 11px;
   font-weight: 600;
-  border-bottom: 1px solid #252f3e;
+  border-bottom: 1px solid var(--border-subtle);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -373,8 +385,8 @@
 .access-table td {
   padding: 14px 18px;
   font-size: 13px;
-  color: #c7cfdb;
-  border-bottom: 1px solid #1c2531;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .access-table tr:last-child td {
@@ -382,11 +394,11 @@
 }
 
 .access-table tr:hover {
-  background: #131b26;
+  background: var(--bg-card-hover);
 }
 
 .access-table-time {
-  color: #748095;
+  color: var(--text-muted);
   font-size: 12px;
 }
 
@@ -397,11 +409,11 @@
 }
 
 .access-action-granted {
-  color: #83a995;
+  color: var(--success);
 }
 
 .access-action-revoked {
-  color: #f87171;
+  color: var(--danger);
 }
 
 /* ===================================
@@ -414,22 +426,23 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.75);
+  background: rgba(0, 0, 0, 0.7);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
   padding: 20px;
+  backdrop-filter: blur(4px);
 }
 
 .modal-container {
-  background: #101622;
-  border: 1px solid #2d3a4d;
-  border-radius: 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
   width: 100%;
   max-width: 480px;
   padding: 24px;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--shadow-lg);
 }
 
 .modal-header {
@@ -442,26 +455,28 @@
 .modal-header h3 {
   margin: 0;
   font-size: 17px;
-  color: #e5e9ef;
+  color: var(--text-primary);
 }
 
 .modal-close-btn {
   background: transparent;
   border: none;
-  color: #748095;
+  color: var(--text-muted);
   font-size: 16px;
   cursor: pointer;
   padding: 4px;
+  border-radius: var(--radius-sm);
+  transition: color var(--transition-fast);
 }
 
 .modal-close-btn:hover {
-  color: #ffffff;
+  color: var(--text-primary);
 }
 
 .modal-body p {
   margin: 0 0 20px;
   font-size: 13px;
-  color: #94a3b8;
+  color: var(--text-secondary);
   line-height: 1.6;
 }
 
@@ -473,41 +488,49 @@
 
 .modal-cancel-btn {
   padding: 10px 18px;
-  background: transparent;
-  border: 1px solid #293443;
-  border-radius: 8px;
-  color: #8793a6;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
+  transition: all var(--transition-fast);
 }
 
 .modal-cancel-btn:hover {
-  color: #ffffff;
-  background: #151d28;
+  color: var(--text-primary);
+  background: var(--bg-card-hover);
 }
 
 .modal-confirm-btn {
   padding: 10px 20px;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
+  transition: all var(--transition-fast);
 }
 
 .modal-btn-danger {
-  background: #dc2626;
+  background: var(--danger);
   color: #ffffff;
 }
 
 .modal-btn-danger:hover {
-  background: #b91c1c;
+  background: var(--danger-hover);
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.3);
 }
 
 .modal-btn-primary {
-  background: #ffffff;
-  color: #080b12;
+  background: var(--primary);
+  color: #ffffff;
+}
+
+.modal-btn-primary:hover {
+  background: var(--primary-hover);
+  box-shadow: 0 0 12px var(--primary-glow);
 }
 
 /* ===================================

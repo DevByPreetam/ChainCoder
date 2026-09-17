@@ -1,8 +1,9 @@
-﻿'use strict';
+'use strict';
 
 const crypto = require('crypto');
 const { query, isDbConnected } = require('../config/db');
 const { getAuditLogs } = require('../services/auditLogService');
+const fabricService = require('../services/fabricService');
 
 function sha256(data) {
     return crypto.createHash('sha256').update(typeof data === 'string' ? data : JSON.stringify(data)).digest('hex');
@@ -408,7 +409,36 @@ async function simulateNewBlock(req, res) {
     }
 }
 
+async function getTransactionByTxId(req, res) {
+    try {
+        const { txId } = req.params;
+        if (!txId) {
+            return res.status(400).json({ success: false, message: 'Transaction ID is required' });
+        }
+        const txDetails = await fabricService.getTransactionDetails(txId, 'BEL');
+        if (!txDetails || txDetails.status === 'UNAVAILABLE') {
+            return res.status(404).json({
+                success: false,
+                message: 'Blockchain transaction details are currently unavailable for this record',
+                txId
+            });
+        }
+        return res.status(200).json({
+            success: true,
+            transaction: txDetails
+        });
+    } catch (error) {
+        console.error('getTransactionByTxId error:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Unable to query blockchain transaction details',
+            error: error.message
+        });
+    }
+}
+
 module.exports = {
     getBlockchainBlocks,
-    simulateNewBlock
+    simulateNewBlock,
+    getTransactionByTxId
 };

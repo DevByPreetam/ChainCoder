@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import Sidebar from "../../components/layout/Sidebar";
 import Topbar from "../../components/layout/Topbar";
@@ -7,27 +7,48 @@ import {
   createIdentity,
   getIdentity,
   revokeIdentity,
+  proposeRevokeIdentity,
 } from "../../services/identityService";
+import { getAuditorIdentities } from "../../services/auditorService";
 
 import "../../styles/layout.css";
 import "../../styles/access.css";
 import "../../styles/identity.css";
 
-const PRESET_REFERENCES = [
-  { identityId: "BEL001", name: "BEL Admin", organization: "BEL", role: "Admin", status: "ACTIVE" },
-  { identityId: "BEL002", name: "BEL Manager", organization: "BEL", role: "Manager", status: "ACTIVE" },
-  { identityId: "BEL003", name: "BEL Employee", organization: "BEL", role: "Employee", status: "ACTIVE" },
-  { identityId: "AUD001", name: "Auditor Lead", organization: "Auditor", role: "Auditor", status: "ACTIVE" },
-  { identityId: "CON001", name: "Contractor Admin", organization: "Contractor", role: "Admin", status: "ACTIVE" },
-  { identityId: "CON002", name: "Contractor User", organization: "Contractor", role: "User", status: "ACTIVE" },
+const NETWORK_IDENTITY_IDS = [
+  "BEL001",
+  "BEL002",
+  "BEL003",
+  "AUD001",
+  "CON001",
+  "CON002"
 ];
+
+const SESSION_IDENTITIES_KEY = "chaincoder_session_identities";
+
+function getStoredSessionIdentities() {
+  try {
+    const raw = sessionStorage.getItem(SESSION_IDENTITIES_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveSessionIdentities(list) {
+  try {
+    sessionStorage.setItem(SESSION_IDENTITIES_KEY, JSON.stringify(list));
+  } catch {
+    // Ignore storage quota
+  }
+}
 
 function IdentityManagement() {
   const { user } = useAuth();
 
   // Role permissions following backend authorization rules:
   // BEL Admin: Can register for BEL or Contractor (any role), and can revoke identities
-  // BEL Manager: Can only register BEL identities with role in [Admin, Manager, Employee]
+  // BEL Manager: Can only register BEL staff identities with role in [Admin, Manager, Employee]
   // Contractor Admin: Can only register Contractor identities with role in [Admin, User]
   // Auditor, BEL Employee, Contractor User: Cannot register or revoke
   const isBelAdmin = user?.organization === "BEL" && user?.role === "Admin";
@@ -46,7 +67,76 @@ function IdentityManagement() {
   const [searching, setSearching] = useState(false);
   const [searchedIdentity, setSearchedIdentity] = useState(null);
   const [searchError, setSearchError] = useState("");
-  const [sessionIdentities, setSessionIdentities] = useState(PRESET_REFERENCES);
+  const [sessionIdentities, setSessionIdentities] = useState([]);
+  const [directoryLoading, setDirectoryLoading] = useState(true);
+
+  // Load real identities from ledger/auditor and initialize directory with all network participants
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadDirectory() {
+      try {
+        setDirectoryLoading(true);
+        if (isAuditor) {
+          const res = await getAuditorIdentities();
+          const list = res?.identities || res || [];
+          if (isMounted && Array.isArray(list)) {
+            setSessionIdentities(list);
+            saveSessionIdentities(list);
+          }
+        } else {
+          // For BEL Admin, BEL Manager, Contractor Admin:
+          // Gather candidate IDs from network candidates, user self, and sessionStorage
+          const stored = getStoredSessionIdentities();
+          const candidateSet = new Set([
+            ...NETWORK_IDENTITY_IDS,
+            ...(user?.userId ? [user.userId] : []),
+            ...stored.map((i) => i.identityId),
+          ]);
+
+          // Filter candidates if Contractor Admin (can only view Contractor identities + self)
+          const targetIds = Array.from(candidateSet).filter((id) => {
+            if (isContractorAdmin) {
+              return id.startsWith("CON") || id === user?.userId;
+            }
+            return true;
+          });
+
+          const results = await Promise.allSettled(
+            targetIds.map((id) => getIdentity(id))
+          );
+
+          const loaded = [];
+          for (const r of results) {
+            if (r.status === "fulfilled" && r.value && r.value.identityId) {
+              loaded.push(r.value);
+            }
+          }
+
+          if (isMounted) {
+            // Sort: current user first, then alphabetical by ID
+            loaded.sort((a, b) => {
+              if (a.identityId === user?.userId) return -1;
+              if (b.identityId === user?.userId) return 1;
+              return a.identityId.localeCompare(b.identityId);
+            });
+            setSessionIdentities(loaded);
+            saveSessionIdentities(loaded);
+          }
+        }
+      } catch (err) {
+        console.warn("Could not load initial identity directory:", err.message);
+      } finally {
+        if (isMounted) setDirectoryLoading(false);
+      }
+    }
+
+    loadDirectory();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isAuditor, isContractorAdmin, user?.userId]);
 
   // Register Form State
   const initialOrg = isContractorAdmin ? "Contractor" : "BEL";
@@ -62,8 +152,9 @@ function IdentityManagement() {
   const [registerError, setRegisterError] = useState("");
   const [registerSuccess, setRegisterSuccess] = useState(null);
 
-  // Revocation Modal State
+  // Revocation Modal State (Multi-Party Governance Proposal)
   const [revokeTarget, setRevokeTarget] = useState(null);
+  const [revokeReason, setRevokeReason] = useState("");
   const [revoking, setRevoking] = useState(false);
   const [revokeError, setRevokeError] = useState("");
   const [revokeSuccess, setRevokeSuccess] = useState("");
@@ -99,10 +190,11 @@ function IdentityManagement() {
       // Update or prepend to session identities
       setSessionIdentities((prev) => {
         const exists = prev.some((item) => item.identityId === result.identityId);
-        if (exists) {
-          return prev.map((item) => (item.identityId === result.identityId ? { ...item, ...result } : item));
-        }
-        return [result, ...prev];
+        const updated = exists
+          ? prev.map((item) => (item.identityId === result.identityId ? { ...item, ...result } : item))
+          : [result, ...prev];
+        saveSessionIdentities(updated);
+        return updated;
       });
     } catch (err) {
       setSearchedIdentity(null);
@@ -197,10 +289,14 @@ function IdentityManagement() {
       setRegisterSuccess(confirmedIdentity);
 
       // Add to session list and select it in lookup view
-      setSessionIdentities((prev) => [
-        confirmedIdentity,
-        ...prev.filter((i) => i.identityId !== confirmedIdentity.identityId),
-      ]);
+      setSessionIdentities((prev) => {
+        const updated = [
+          confirmedIdentity,
+          ...prev.filter((i) => i.identityId !== confirmedIdentity.identityId),
+        ];
+        saveSessionIdentities(updated);
+        return updated;
+      });
       setSearchedIdentity(confirmedIdentity);
 
       // Clear input fields for next entry
@@ -219,41 +315,32 @@ function IdentityManagement() {
   const handleOpenRevokeModal = (identity) => {
     if (!isBelAdmin) return;
     setRevokeTarget(identity);
+    setRevokeReason("");
     setRevokeError("");
   };
 
-  // Confirm Revocation
+  // Confirm Revocation Proposal (Multi-Party Governance)
   const handleConfirmRevoke = async () => {
     if (!revokeTarget) return;
+
+    const trimmedReason = revokeReason.trim();
+    if (!trimmedReason) {
+      setRevokeError("A revocation reason is required for security governance audit.");
+      return;
+    }
 
     try {
       setRevoking(true);
       setRevokeError("");
-      const updated = await revokeIdentity(revokeTarget.identityId);
+      const result = await proposeRevokeIdentity(revokeTarget.identityId, trimmedReason);
 
-      const revokedStatus = updated?.status || "REVOKED";
-
-      // Update searched identity if matching
-      if (searchedIdentity && searchedIdentity.identityId === revokeTarget.identityId) {
-        setSearchedIdentity((prev) => ({
-          ...prev,
-          status: revokedStatus,
-        }));
-      }
-
-      // Update session identities list
-      setSessionIdentities((prev) =>
-        prev.map((item) =>
-          item.identityId === revokeTarget.identityId
-            ? { ...item, status: revokedStatus }
-            : item
-        )
+      setRevokeSuccess(
+        `Revocation proposal for identity "${revokeTarget.identityId}" (${revokeTarget.name}) submitted successfully. It is now awaiting independent Auditor co-approval in the Approvals Queue.`
       );
-
-      setRevokeSuccess(`Identity "${revokeTarget.identityId}" was successfully revoked on the blockchain.`);
       setRevokeTarget(null);
+      setRevokeReason("");
     } catch (err) {
-      setRevokeError(err.message || "Failed to revoke identity on blockchain.");
+      setRevokeError(err.message || "Failed to submit identity revocation proposal.");
     } finally {
       setRevoking(false);
     }
@@ -482,9 +569,9 @@ function IdentityManagement() {
                   {canRevoke && (
                     <div className="identity-governance-box">
                       <div className="governance-info">
-                        <strong>Identity Governance Control</strong>
+                        <strong>Identity Revocation Governance (Multi-Party)</strong>
                         <p>
-                          Revoking this identity will submit a permanent status change to Hyperledger Fabric, preventing the identity from authorizing or executing subsequent blockchain transactions.
+                          Revoking an identity requires a multi-party governance workflow. Submitting a proposal queues the request for independent Auditor co-approval before deactivation on Hyperledger Fabric and Fabric CA.
                         </p>
                       </div>
 
@@ -503,7 +590,7 @@ function IdentityManagement() {
                             className="identity-btn-danger"
                             onClick={() => handleOpenRevokeModal(searchedIdentity)}
                           >
-                            Revoke Identity
+                            Propose Revocation
                           </button>
                         )}
                       </div>
@@ -541,53 +628,73 @@ function IdentityManagement() {
                       </tr>
                     </thead>
                     <tbody>
-                      {sessionIdentities.map((item) => (
-                        <tr key={item.identityId}>
-                          <td>
-                            <strong style={{ color: "#ffffff", fontFamily: "monospace" }}>
-                              {item.identityId}
-                            </strong>
+                      {directoryLoading ? (
+                        <tr>
+                          <td colSpan="6" style={{ textAlign: "center", padding: "28px", color: "var(--text-muted)" }}>
+                            Querying Hyperledger Fabric directory...
                           </td>
-                          <td>{item.name}</td>
-                          <td>
-                            <span className="org-tag">{item.organization}</span>
-                          </td>
-                          <td>{item.role}</td>
-                          <td>
-                            <span
-                              className={`status-pill ${
-                                item.status === "REVOKED" ? "pill-revoked" : "pill-active"
-                              }`}
-                            >
-                              {item.status || "ACTIVE"}
-                            </span>
-                          </td>
-                          <td style={{ textAlign: "right" }}>
-                            <div style={{ display: "inline-flex", gap: "8px" }}>
-                              <button
-                                type="button"
-                                className="table-btn-inspect"
-                                onClick={(e) => {
-                                  setSearchId(item.identityId);
-                                  handleSearch(e, item.identityId);
-                                }}
+                        </tr>
+                      ) : sessionIdentities.length > 0 ? (
+                        sessionIdentities.map((item) => (
+                          <tr key={item.identityId}>
+                            <td>
+                              <strong style={{ color: "var(--text-primary)", fontFamily: "var(--font-mono)" }}>
+                                {item.identityId}
+                              </strong>
+                            </td>
+                            <td>{item.name}</td>
+                            <td>
+                              <span className="org-tag">{item.organization}</span>
+                            </td>
+                            <td>{item.role}</td>
+                            <td>
+                              <span
+                                className={`status-pill ${
+                                  item.status === "REVOKED" ? "pill-revoked" : "pill-active"
+                                }`}
                               >
-                                Inspect
-                              </button>
-
-                              {canRevoke && item.status !== "REVOKED" && (
+                                {item.status || "ACTIVE"}
+                              </span>
+                            </td>
+                            <td style={{ textAlign: "right" }}>
+                              <div style={{ display: "inline-flex", gap: "8px" }}>
                                 <button
                                   type="button"
-                                  className="table-btn-revoke"
-                                  onClick={() => handleOpenRevokeModal(item)}
+                                  className="table-btn-inspect"
+                                  onClick={(e) => {
+                                    setSearchId(item.identityId);
+                                    handleSearch(e, item.identityId);
+                                  }}
                                 >
-                                  Revoke
+                                  Inspect
                                 </button>
-                              )}
+
+                                {canRevoke && item.status !== "REVOKED" && (
+                                  <button
+                                    type="button"
+                                    className="table-btn-revoke"
+                                    onClick={() => handleOpenRevokeModal(item)}
+                                    title="Propose identity revocation for Auditor co-approval"
+                                  >
+                                    Propose Revoke
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan="6" style={{ textAlign: "center", padding: "36px 16px", color: "var(--text-muted)" }}>
+                            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px" }}>
+                              <strong style={{ color: "var(--text-primary)", fontSize: "14px" }}>No Identities in Current View</strong>
+                              <span style={{ fontSize: "12px", maxWidth: "380px" }}>
+                                Enter an Identity ID in the search box above to query Fabric credentials, or register a new identity if authorized.
+                              </span>
                             </div>
                           </td>
                         </tr>
-                      ))}
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -838,30 +945,61 @@ function IdentityManagement() {
             </div>
           )}
 
-          {/* Revoke Confirmation Modal */}
+          {/* Propose Identity Revocation Modal (Multi-Party Governance) */}
           <ConfirmModal
             isOpen={Boolean(revokeTarget)}
-            title="Revoke Blockchain Identity"
+            title="Propose Identity Revocation (Multi-Party Governance)"
             message={
               <div>
-                <p style={{ margin: "0 0 12px" }}>
-                  Are you sure you want to revoke identity{" "}
+                <p style={{ margin: "0 0 12px", color: "#e2e8f0" }}>
+                  Submit a formal identity revocation proposal for{" "}
                   <strong style={{ color: "#ffffff" }}>
                     {revokeTarget?.identityId} ({revokeTarget?.name})
                   </strong>
-                  ?
+                  .
                 </p>
-                <div style={{ padding: "10px 14px", background: "#1f1315", border: "1px solid #451a1d", borderRadius: "8px", color: "#fca5a5", fontSize: "12px" }}>
-                  ⚠️ <strong>Warning:</strong> Revoking an identity is an irreversible blockchain action. Once revoked on Hyperledger Fabric, this identity will be permanently marked as <strong>REVOKED</strong> and will be prohibited from performing any authorized operations on the platform.
+                <div style={{
+                  padding: "10px 14px",
+                  background: "#1f1315",
+                  border: "1px solid #451a1d",
+                  borderRadius: "8px",
+                  color: "#fca5a5",
+                  fontSize: "12px",
+                  marginBottom: "14px"
+                }}>
+                  ⚖️ <strong>Multi-Party Governance Rule:</strong> Direct revocation is disabled. Per SIH security policy, revocation must be proposed by the issuing organization (BEL) and independently co-approved by an Auditor before the identity is deactivated on Hyperledger Fabric.
+                </div>
+                <div className="identity-form-group" style={{ marginBottom: "6px" }}>
+                  <label className="identity-form-label" style={{ fontSize: "12px", marginBottom: "6px" }}>
+                    Reason for Revocation <span style={{ color: "#ef4444" }}>*</span>
+                  </label>
+                  <textarea
+                    className="identity-form-input"
+                    style={{
+                      minHeight: "75px",
+                      resize: "vertical",
+                      width: "100%",
+                      boxSizing: "border-box",
+                      fontFamily: "inherit"
+                    }}
+                    placeholder="State justification (e.g. Contract termination, security clearance revocation, credential compromise)..."
+                    value={revokeReason}
+                    onChange={(e) => {
+                      setRevokeReason(e.target.value);
+                      if (revokeError) setRevokeError("");
+                    }}
+                    disabled={revoking}
+                    required
+                  />
                 </div>
                 {revokeError && (
-                  <p style={{ color: "#ef4444", fontSize: "12px", marginTop: "10px" }}>
+                  <p style={{ color: "#ef4444", fontSize: "12px", marginTop: "10px", marginBottom: 0 }}>
                     ✕ {revokeError}
                   </p>
                 )}
               </div>
             }
-            confirmText={revoking ? "Revoking on Blockchain..." : "Confirm Revocation"}
+            confirmText={revoking ? "Submitting Proposal..." : "Submit Revocation Proposal"}
             cancelText="Cancel"
             confirmVariant="danger"
             loading={revoking}
@@ -869,6 +1007,7 @@ function IdentityManagement() {
             onClose={() => {
               if (!revoking) {
                 setRevokeTarget(null);
+                setRevokeReason("");
                 setRevokeError("");
               }
             }}

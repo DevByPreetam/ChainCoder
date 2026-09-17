@@ -522,8 +522,8 @@ function PublicIdentityVerification() {
         >
           <div
             style={{
-              background: "#0d131f",
-              border: "1px solid #1e293b",
+              background: "var(--bg-card)",
+              border: "1px solid var(--border-subtle)",
               borderRadius: "12px",
               width: "100%",
               maxWidth: "680px",
@@ -531,7 +531,7 @@ function PublicIdentityVerification() {
               display: "flex",
               flexDirection: "column",
               overflow: "hidden",
-              boxShadow: "0 20px 40px rgba(0,0,0,0.6)",
+              boxShadow: "var(--shadow-lg)",
             }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -542,10 +542,10 @@ function PublicIdentityVerification() {
                 justifyContent: "space-between",
                 alignItems: "center",
                 padding: "16px 20px",
-                borderBottom: "1px solid #1e293b",
+                borderBottom: "1px solid var(--border-subtle)",
               }}
             >
-              <h3 style={{ margin: 0, fontSize: "16px", color: "#f8fafc", fontWeight: 600 }}>
+              <h3 style={{ margin: 0, fontSize: "16px", color: "var(--text-primary)", fontWeight: 600 }}>
                 ChainCoder DID Document
               </h3>
               <button
@@ -554,7 +554,7 @@ function PublicIdentityVerification() {
                 style={{
                   background: "transparent",
                   border: "none",
-                  color: "#94a3b8",
+                  color: "var(--text-muted)",
                   fontSize: "18px",
                   cursor: "pointer",
                   padding: "4px 8px",
@@ -574,11 +574,11 @@ function PublicIdentityVerification() {
               {didDocument && (
                 <pre
                   style={{
-                    background: "#080b12",
-                    border: "1px solid #1e2634",
+                    background: "var(--bg-input)",
+                    border: "1px solid var(--border-subtle)",
                     borderRadius: "8px",
                     padding: "16px",
-                    color: "#38bdf8",
+                    color: "var(--primary)",
                     fontFamily: "monospace",
                     fontSize: "12px",
                     lineHeight: "1.5",
@@ -599,7 +599,7 @@ function PublicIdentityVerification() {
                 justifyContent: "flex-end",
                 gap: "10px",
                 padding: "12px 20px",
-                borderTop: "1px solid #1e293b",
+                borderTop: "1px solid var(--border-subtle)",
               }}
             >
               {didDocument && (

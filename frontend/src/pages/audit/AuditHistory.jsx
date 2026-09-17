@@ -882,41 +882,58 @@ function AuditHistory() {
 
                 <div className="auditor-modal-body">
                   {assetHistoryLoading ? (
-                    <p style={{ color: "#748095" }}>Fetching blockchain provenance...</p>
+                    <p style={{ color: "var(--text-muted)", padding: "16px 0" }}>Fetching blockchain provenance from ledger...</p>
                   ) : assetHistoryError ? (
                     <div className="identity-error">✕ {assetHistoryError}</div>
                   ) : assetHistory.length === 0 ? (
-                    <p style={{ color: "#748095" }}>No history entries recorded for this asset.</p>
+                    <p style={{ color: "var(--text-muted)", padding: "16px 0" }}>No history entries recorded for this asset.</p>
                   ) : (
                     <div className="auditor-table-wrapper">
                       <table className="auditor-table">
                         <thead>
                           <tr>
-                            <th>Transaction ID</th>
-                            <th>Action / State</th>
-                            <th>Actor / Owner</th>
+                            <th>TxID</th>
+                            <th>Action</th>
+                            <th>From (Prev Owner)</th>
+                            <th>To (New Owner)</th>
+                            <th>Actor</th>
                             <th>Timestamp</th>
                             <th>Status</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {assetHistory.map((item, idx) => (
-                            <tr key={item.txId || idx}>
-                              <td className="mono-cell" style={{ color: "#38bdf8" }}>
-                                {item.txId ? `${item.txId.substring(0, 12)}…` : "—"}
-                              </td>
-                              <td>{item.action || item.type || "STATE_UPDATE"}</td>
-                              <td>{item.actor || item.owner || item.value?.owner || "—"}</td>
-                              <td style={{ color: "#94a3b8" }}>
-                                {item.timestamp ? new Date(item.timestamp).toLocaleString() : "—"}
-                              </td>
-                              <td>
-                                <span className="status-pill pill-active">
-                                  {item.isDelete ? "DELETED" : "COMMITTED"}
-                                </span>
-                              </td>
-                            </tr>
-                          ))}
+                          {assetHistory.map((item, idx) => {
+                            const val = item.value || {};
+                            const prevVal = idx > 0 ? assetHistory[idx - 1].value || {} : {};
+                            const action = item.action || (item.isDelete ? "DELETE" : idx === 0 ? "MINT_ASSET" : (val.owner !== prevVal.owner ? "TRANSFER" : "UPDATE_ASSET"));
+                            const prevOwner = item.previousOwner || val.previousOwner || (idx > 0 ? (prevVal.ownerOrganization || prevVal.owner) : "—") || "—";
+                            const newOwner = val.ownerOrganization ? `${val.ownerOrganization} (${val.owner || "—"})` : (val.owner || item.owner || "—");
+                            const actor = item.actor || item.performedBy || val.updatedBy || val.owner || "—";
+                            const ts = item.timestamp || val.updatedAt || val.createdAt || null;
+                            const status = item.isDelete ? "DELETED" : (val.status || item.status || "COMMITTED");
+
+                            return (
+                              <tr key={item.txId || idx}>
+                                <td className="mono-cell" style={{ color: "var(--primary-light)" }}>
+                                  {item.txId ? `${item.txId.substring(0, 10)}…` : "—"}
+                                </td>
+                                <td>
+                                  <span style={{ fontWeight: 600 }}>{action}</span>
+                                </td>
+                                <td style={{ color: "var(--text-secondary)" }}>{prevOwner}</td>
+                                <td style={{ fontWeight: 600, color: "var(--text-primary)" }}>{newOwner}</td>
+                                <td className="mono-cell">{actor}</td>
+                                <td style={{ color: "var(--text-muted)" }}>
+                                  {ts ? new Date(ts).toLocaleString() : "—"}
+                                </td>
+                                <td>
+                                  <span className={`status-pill ${status === "DELETED" ? "pill-revoked" : "pill-active"}`}>
+                                    {status}
+                                  </span>
+                                </td>
+                              </tr>
+                            );
+                          })}
                         </tbody>
                       </table>
                     </div>

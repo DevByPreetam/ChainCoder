@@ -1,8 +1,8 @@
 import Icon from "../common/Icon";
 
-function StatCard({ title, value, description, iconName = "dashboard", trend = null }) {
+function StatCard({ title, value, description, iconName = "dashboard", trend = null, variant = "default" }) {
   return (
-    <div className="stat-card">
+    <div className={`stat-card variant-${variant}`}>
       <div className="stat-card-top">
         <span className="stat-card-title">{title}</span>
         <div className="stat-card-icon-wrap">

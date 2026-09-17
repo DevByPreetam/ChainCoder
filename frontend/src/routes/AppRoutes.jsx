@@ -6,6 +6,7 @@ import Dashboard from "../pages/dashboard/Dashboard";
 import MyIdentity from "../pages/identity/MyIdentity";
 import MyAssets from "../pages/assets/MyAssets";
 import AssetDetails from "../pages/assets/AssetDetails";
+import AssetTransactionPage from "../pages/assets/AssetTransactionPage";
 import MintAsset from "../pages/assets/MintAsset";
 import AccessManagement from "../pages/access/AccessManagement";
 import AccessRequests from "../pages/access/AccessRequests";
@@ -145,6 +146,22 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <Notifications />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/assets/:assetId/transaction/:txId"
+        element={
+          <ProtectedRoute>
+            <AssetTransactionPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/assets/:assetId/transaction/:transactionId"
+        element={
+          <ProtectedRoute>
+            <AssetTransactionPage />
           </ProtectedRoute>
         }
       />

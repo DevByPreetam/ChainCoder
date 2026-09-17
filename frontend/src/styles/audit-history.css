@@ -16,18 +16,18 @@
   align-items: center;
   gap: 8px;
   padding: 6px 14px;
-  background: #121e2a;
-  border: 1px solid #1e3a5f;
-  border-radius: 8px;
+  background: var(--info-bg);
+  border: 1px solid var(--info-border);
+  border-radius: var(--radius-full);
   font-size: 12px;
-  color: #93c5fd;
+  color: var(--info);
   font-weight: 600;
 }
 
 .audit-filter-card {
-  background: #0f151e;
-  border: 1px solid #252f3e;
-  border-radius: 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
   padding: 20px;
   margin-bottom: 24px;
 }
@@ -48,27 +48,29 @@
 .audit-filter-group label {
   font-size: 11px;
   font-weight: 600;
-  color: #94a3b8;
+  color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .audit-filter-input,
 .audit-filter-select {
-  padding: 8px 12px;
-  background: #080b12;
-  border: 1px solid #252f3e;
-  border-radius: 8px;
-  color: #ffffff;
+  padding: 10px 12px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
   font-size: 13px;
   outline: none;
   width: 100%;
   box-sizing: border-box;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .audit-filter-input:focus,
 .audit-filter-select:focus {
-  border-color: #64748b;
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px var(--primary-subtle);
 }
 
 .audit-filter-actions {
@@ -81,26 +83,26 @@
 
 .audit-btn-clear {
   padding: 8px 16px;
-  background: transparent;
-  color: #94a3b8;
-  border: 1px solid #252f3e;
-  border-radius: 8px;
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--transition-fast);
 }
 
 .audit-btn-clear:hover {
-  color: #ffffff;
-  background: #141b26;
+  color: var(--text-primary);
+  background: var(--bg-card-hover);
 }
 
 /* Event Table */
 .audit-table-card {
-  background: #0f151e;
-  border: 1px solid #252f3e;
-  border-radius: 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
   padding: 20px;
   margin-bottom: 24px;
 }
@@ -117,56 +119,58 @@
 .audit-action-tag {
   display: inline-block;
   padding: 3px 8px;
-  background: #17202e;
-  border: 1px solid #28374d;
-  border-radius: 6px;
+  background: var(--primary-subtle);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
   font-size: 11px;
-  font-family: monospace;
+  font-family: var(--font-mono);
   font-weight: 600;
-  color: #e2e8f0;
+  color: var(--primary-light);
 }
 
 .audit-resource-tag {
   display: inline-block;
   padding: 2px 7px;
-  background: #111a28;
-  border: 1px solid #1e293b;
-  border-radius: 4px;
+  background: var(--accent-cyan-bg);
+  border: 1px solid var(--accent-cyan-border);
+  border-radius: var(--radius-sm);
   font-size: 11px;
-  color: #93c5fd;
+  font-family: var(--font-mono);
+  color: var(--accent-cyan);
 }
 
 .audit-btn-inspect {
-  padding: 4px 10px;
-  background: #1c2636;
-  border: 1px solid #2d3d54;
-  border-radius: 6px;
-  color: #93c5fd;
+  padding: 5px 12px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  color: var(--primary-light);
   font-size: 11px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all var(--transition-fast);
 }
 
 .audit-btn-inspect:hover {
-  background: #2d3d54;
+  background: var(--primary);
   color: #ffffff;
+  border-color: var(--primary);
 }
 
 .audit-btn-history-link {
-  padding: 4px 10px;
-  background: #14231b;
-  border: 1px solid #204e35;
-  border-radius: 6px;
-  color: #6ee7b7;
+  padding: 5px 12px;
+  background: var(--success-bg);
+  border: 1px solid var(--success-border);
+  border-radius: var(--radius-sm);
+  color: var(--success);
   font-size: 11px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all var(--transition-fast);
 }
 
 .audit-btn-history-link:hover {
-  background: #204e35;
+  background: var(--success);
   color: #ffffff;
 }
 
@@ -176,7 +180,7 @@
   justify-content: space-between;
   align-items: center;
   padding-top: 16px;
-  border-top: 1px solid #1e293b;
+  border-top: 1px solid var(--border-subtle);
   margin-top: 16px;
   flex-wrap: wrap;
   gap: 12px;
@@ -189,20 +193,21 @@
 }
 
 .audit-page-btn {
-  padding: 6px 12px;
-  background: #141b26;
-  border: 1px solid #252f3e;
-  border-radius: 6px;
-  color: #cbd5e1;
+  padding: 6px 14px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all var(--transition-fast);
 }
 
 .audit-page-btn:hover:not(:disabled) {
-  background: #252f3e;
-  color: #ffffff;
+  background: var(--bg-card-hover);
+  color: var(--text-primary);
+  border-color: var(--border-default);
 }
 
 .audit-page-btn:disabled {
@@ -220,15 +225,15 @@
 
 .audit-detail-card {
   padding: 14px;
-  background: #080b12;
-  border: 1px solid #1e293b;
-  border-radius: 8px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
 }
 
 .audit-detail-card span {
   display: block;
   font-size: 11px;
-  color: #64748b;
+  color: var(--text-muted);
   margin-bottom: 6px;
   text-transform: uppercase;
 }
@@ -236,17 +241,17 @@
 .audit-detail-card strong {
   display: block;
   font-size: 13px;
-  color: #f1f5f9;
+  color: var(--text-primary);
 }
 
 .audit-payload-box {
-  background: #080b12;
-  border: 1px solid #1e293b;
-  border-radius: 8px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
   padding: 14px;
-  font-family: monospace;
+  font-family: var(--font-mono);
   font-size: 12px;
-  color: #a5b4fc;
+  color: var(--accent-cyan);
   max-height: 200px;
   overflow-y: auto;
   white-space: pre-wrap;

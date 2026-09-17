@@ -405,3 +405,21 @@ export async function rejectDeletionProposal(proposalId, reason) {
   return data.data || data;
 }
 
+export async function getAssetTransaction(assetId, txId) {
+  const response = await fetch(
+    `${API_URL}/assets/${encodeURIComponent(assetId)}/transaction/${encodeURIComponent(txId)}`,
+    {
+      method: "GET",
+      headers: authHeaders(),
+    }
+  );
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "Unable to fetch transaction details");
+  }
+
+  return data.data?.transaction || data.transaction;
+}
+

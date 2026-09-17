@@ -5,7 +5,8 @@ const {
     getAsset,
     transferAsset,
     updateAssetDocument,
-    getAssetHistory
+    getAssetHistory,
+    getTransactionDetails
 } = require('../services/assetService');
 const { isAssetDeleted, getPendingProposalForAsset } = require('../services/assetDeletionService');
 const { saveUploadedFile, hashFromIpfs, retrieveFromIpfs } = require('../services/fileService');
@@ -455,11 +456,52 @@ async function fetchAssetHistory(req, res) {
             return sendError(res, 403, 'Access denied', 'FORBIDDEN');
         }
 
-        const history = await getAssetHistory(assetId, req.user.organization);
+        const rawHistory = await getAssetHistory(assetId, req.user.organization);
+
+        // Enrich history entries with real Hyperledger Fabric transaction metadata
+        const history = await Promise.all(
+            (rawHistory || []).map(async (entry) => {
+                let transaction = null;
+                if (entry.txId) {
+                    try {
+                        transaction = await getTransactionDetails(entry.txId, req.user.organization);
+                    } catch (txErr) {
+                        console.warn(`Could not get transaction details for ${entry.txId}:`, txErr.message);
+                    }
+                }
+                return {
+                    ...entry,
+                    transaction
+                };
+            })
+        );
+
         return sendSuccess(res, { assetId, history });
     } catch (error) {
         console.error('Asset history error:', error);
         return handleControllerError(res, error, 'Unable to fetch asset history');
+    }
+}
+
+async function fetchAssetTransaction(req, res) {
+    try {
+        const { assetId, txId } = req.params;
+        assertSafeId(assetId, 'assetId');
+
+        const asset = await getAsset(assetId, req.user.organization);
+        if (!(await canViewAsset(req.user, asset))) {
+            return sendError(res, 403, 'Access denied', 'FORBIDDEN');
+        }
+
+        const transaction = await getTransactionDetails(txId, req.user.organization);
+        if (!transaction) {
+            return sendError(res, 404, 'Blockchain transaction details are currently unavailable for this record', 'NOT_FOUND');
+        }
+
+        return sendSuccess(res, { assetId, transaction });
+    } catch (error) {
+        console.error('Fetch asset transaction error:', error);
+        return handleControllerError(res, error, 'Unable to fetch blockchain transaction details');
     }
 }
 
@@ -517,6 +559,7 @@ module.exports = {
     verifyAssetDocument,
     downloadAssetDocument,
     fetchAssetHistory,
+    fetchAssetTransaction,
     publicVerifyAsset,
     publicAssetView
 };

@@ -10,7 +10,7 @@
   margin: 0 0 6px;
   font-size: 22px;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--text-primary);
 }
 
 .page-header p {
@@ -42,12 +42,12 @@
   align-items: flex-start;
   gap: 12px;
   padding: 14px 18px;
-  background: rgba(37, 99, 235, 0.08);
-  border: 1px solid rgba(59, 130, 246, 0.25);
+  background: var(--primary-subtle);
+  border: 1px solid var(--primary-glow);
   border-radius: var(--radius-md);
   margin-bottom: 20px;
   font-size: 13px;
-  color: #93c5fd;
+  color: var(--primary-light);
   line-height: 1.5;
 }
 
@@ -85,7 +85,7 @@
   margin: 0;
   font-size: 20px;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--text-primary);
 }
 
 .identity-grid {
@@ -119,7 +119,7 @@
 
 .identity-card strong {
   display: block;
-  color: #ffffff;
+  color: var(--text-primary);
   font-size: 14px;
   font-weight: 600;
   word-break: break-all;
@@ -141,7 +141,7 @@
 .identity-verification h3 {
   margin: 0 0 6px;
   font-size: 16px;
-  color: #ffffff;
+  color: var(--text-primary);
 }
 
 .identity-verification p {
@@ -173,16 +173,16 @@
   background: var(--bg-input);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-sm);
-  color: #ffffff;
+  color: var(--text-primary);
   font-size: 13px;
   font-family: inherit;
   outline: none;
-  transition: border-color var(--transition-fast);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .identity-search-input:focus {
   border-color: var(--border-focus);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+  box-shadow: 0 0 0 3px var(--primary-subtle);
 }
 
 .identity-search-btn {
@@ -197,12 +197,13 @@
   border: 1px solid var(--primary-hover);
   border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: background var(--transition-fast);
+  transition: all var(--transition-fast);
   white-space: nowrap;
 }
 
 .identity-search-btn:hover:not(:disabled) {
   background: var(--primary-hover);
+  box-shadow: 0 0 12px var(--primary-glow);
 }
 
 .identity-search-btn:disabled {
@@ -224,7 +225,7 @@
   justify-content: space-between;
   padding: 18px 22px;
   border-bottom: 1px solid var(--border-subtle);
-  background: rgba(10, 14, 24, 0.5);
+  background: var(--bg-surface);
   flex-wrap: wrap;
   gap: 10px;
 }
@@ -246,11 +247,11 @@
   padding: 12px 18px;
   font-size: 11px;
   font-weight: 600;
-  color: var(--text-secondary);
+  color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.6px;
   border-bottom: 1px solid var(--border-subtle);
-  background: rgba(10, 14, 24, 0.7);
+  background: var(--bg-surface);
 }
 
 .identity-table td {
@@ -261,7 +262,7 @@
 }
 
 .identity-table tbody tr:hover {
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--bg-card-hover);
 }
 
 .identity-table tbody tr:last-child td {
@@ -273,10 +274,10 @@
   padding: 2px 8px;
   font-size: 11px;
   font-weight: 600;
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-sm);
+  background: var(--primary-subtle);
   border: 1px solid var(--border-subtle);
-  color: var(--text-secondary);
+  color: var(--primary-light);
 }
 
 .status-pill {
@@ -293,13 +294,13 @@
 
 .pill-active {
   background: var(--success-bg);
-  color: #34d399;
+  color: var(--success);
   border: 1px solid var(--success-border);
 }
 
 .pill-revoked {
   background: var(--danger-bg);
-  color: #f87171;
+  color: var(--danger);
   border: 1px solid var(--danger-border);
 }
 
@@ -311,15 +312,15 @@
   flex-wrap: wrap;
   gap: 16px;
   padding: 18px 20px;
-  background: rgba(239, 68, 68, 0.06);
-  border: 1px solid rgba(239, 68, 68, 0.25);
+  background: var(--danger-bg);
+  border: 1px solid var(--danger-border);
   border-radius: var(--radius-md);
   margin-top: 18px;
 }
 
 .governance-info strong {
   display: block;
-  color: #fca5a5;
+  color: var(--danger);
   font-size: 13px;
   margin-bottom: 4px;
 }
@@ -335,7 +336,7 @@
 .identity-btn-danger {
   padding: 8px 16px;
   background: var(--danger-bg);
-  color: #f87171;
+  color: var(--danger);
   border: 1px solid var(--danger-border);
   border-radius: var(--radius-sm);
   font-size: 12px;
@@ -345,13 +346,13 @@
 }
 
 .identity-btn-danger:hover {
-  background: #dc2626;
+  background: var(--danger);
   color: #ffffff;
 }
 
 .identity-btn-revoked {
   padding: 8px 16px;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--bg-surface);
   color: var(--text-dim);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
@@ -390,23 +391,23 @@
   background: var(--bg-input);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-sm);
-  color: #ffffff;
+  color: var(--text-primary);
   font-size: 13px;
   font-family: inherit;
   outline: none;
   box-sizing: border-box;
-  transition: border-color var(--transition-fast);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .identity-form-input:focus,
 .identity-form-select:focus {
   border-color: var(--border-focus);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+  box-shadow: 0 0 0 3px var(--primary-subtle);
 }
 
 .identity-form-input:disabled,
 .identity-form-select:disabled {
-  background: #0d121c;
+  background: var(--bg-surface);
   color: var(--text-dim);
   cursor: not-allowed;
 }
@@ -420,8 +421,8 @@
 
 .identity-success-card {
   padding: 22px;
-  background: rgba(16, 185, 129, 0.08);
-  border: 1px solid rgba(16, 185, 129, 0.25);
+  background: var(--success-bg);
+  border: 1px solid var(--success-border);
   border-radius: var(--radius-md);
   margin-bottom: 20px;
 }
@@ -431,7 +432,7 @@
   background: var(--danger-bg);
   border: 1px solid var(--danger-border);
   border-radius: var(--radius-sm);
-  color: #f87171;
+  color: var(--danger);
   font-size: 12px;
   font-weight: 500;
   margin-bottom: 18px;

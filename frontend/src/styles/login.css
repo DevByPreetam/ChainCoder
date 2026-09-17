@@ -39,7 +39,7 @@
   border-radius: var(--radius-full);
   font-size: 11px;
   font-weight: 700;
-  color: #60a5fa;
+  color: var(--primary);
   letter-spacing: 0.5px;
   margin-bottom: 24px;
 }
@@ -48,8 +48,8 @@
   width: 54px;
   height: 54px;
   border-radius: 14px;
-  background: linear-gradient(135deg, #1d4ed8 0%, #0b132b 100%);
-  border: 1px solid #3b82f6;
+  background: linear-gradient(135deg, var(--primary) 0%, #0b132b 100%);
+  border: 1px solid var(--primary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -64,7 +64,7 @@
   letter-spacing: -0.8px;
   line-height: 1.15;
   margin: 0 0 16px;
-  color: #ffffff;
+  color: var(--text-primary);
 }
 
 .login-brand p {
@@ -112,7 +112,7 @@
   margin: 0 0 6px;
   font-size: 22px;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--text-primary);
 }
 
 .login-subtitle {
@@ -129,7 +129,7 @@
   background: var(--danger-bg);
   border: 1px solid var(--danger-border);
   border-radius: var(--radius-sm);
-  color: #f87171;
+  color: var(--danger);
   font-size: 12px;
   font-weight: 500;
   margin-bottom: 20px;
@@ -177,7 +177,7 @@
   flex-direction: column;
   align-items: flex-start;
   padding: 8px 10px;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
   color: var(--text-secondary);
@@ -190,12 +190,12 @@
 .demo-account-btn:hover {
   background: rgba(37, 99, 235, 0.12);
   border-color: rgba(59, 130, 246, 0.4);
-  color: #ffffff;
+  color: var(--text-primary);
 }
 
 .demo-account-btn strong {
   font-size: 12px;
-  color: #ffffff;
+  color: var(--text-primary);
 }
 
 .demo-account-btn span {

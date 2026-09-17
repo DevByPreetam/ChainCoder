@@ -135,8 +135,8 @@ function MyIdentity() {
               {/* DECENTRALIZED IDENTIFIER (DID) SECTION */}
               <div
                 style={{
-                  background: "#0f151e",
-                  border: "1px solid #1e293b",
+                  background: "var(--bg-card)",
+                  border: "1px solid var(--border-subtle)",
                   borderRadius: "12px",
                   padding: "22px",
                   marginBottom: "18px",
@@ -159,7 +159,7 @@ function MyIdentity() {
                         fontSize: "11px",
                         fontWeight: 700,
                         letterSpacing: "0.06em",
-                        color: "#60a5fa",
+                        color: "var(--primary)",
                         textTransform: "uppercase",
                         marginBottom: "6px",
                       }}
@@ -171,7 +171,7 @@ function MyIdentity() {
                         margin: 0,
                         fontSize: "18px",
                         fontFamily: "monospace",
-                        color: "#f8fafc",
+                        color: "var(--text-primary)",
                         wordBreak: "break-all",
                       }}
                     >
@@ -189,9 +189,9 @@ function MyIdentity() {
                         setTimeout(() => setCopied(false), 2000);
                       }}
                       style={{
-                        background: "rgba(30, 41, 59, 0.8)",
-                        border: "1px solid #334155",
-                        color: copied ? "#34d399" : "#94a3b8",
+                        background: "var(--bg-surface)",
+                        border: "1px solid var(--border-default)",
+                        color: copied ? "var(--success)" : "var(--text-secondary)",
                         borderRadius: "6px",
                         padding: "6px 14px",
                         fontSize: "12px",
@@ -208,9 +208,9 @@ function MyIdentity() {
                     <Link
                       to={`/verify-identity?did=${encodeURIComponent(identity.did || `did:chaincoder:${identity.organization}:${identity.identityId}`)}`}
                       style={{
-                        background: "rgba(59, 130, 246, 0.15)",
-                        border: "1px solid rgba(59, 130, 246, 0.4)",
-                        color: "#60a5fa",
+                        background: "rgba(37, 99, 235, 0.15)",
+                        border: "1px solid var(--primary)",
+                        color: "var(--primary)",
                         borderRadius: "6px",
                         padding: "6px 14px",
                         fontSize: "12px",
@@ -231,34 +231,34 @@ function MyIdentity() {
                     display: "grid",
                     gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
                     gap: "12px",
-                    background: "rgba(15, 23, 42, 0.6)",
+                    background: "var(--bg-surface)",
                     padding: "14px",
                     borderRadius: "8px",
-                    border: "1px solid #1e293b",
+                    border: "1px solid var(--border-subtle)",
                     marginBottom: "12px",
                   }}
                 >
                   <div>
-                    <span style={{ fontSize: "11px", color: "#64748b", display: "block" }}>Organization</span>
-                    <strong style={{ fontSize: "13px", color: "#e2e8f0" }}>{identity.organization}</strong>
+                    <span style={{ fontSize: "11px", color: "var(--text-muted)", display: "block" }}>Organization</span>
+                    <strong style={{ fontSize: "13px", color: "var(--text-primary)" }}>{identity.organization}</strong>
                   </div>
                   <div>
-                    <span style={{ fontSize: "11px", color: "#64748b", display: "block" }}>Role</span>
-                    <strong style={{ fontSize: "13px", color: "#e2e8f0" }}>{identity.role}</strong>
+                    <span style={{ fontSize: "11px", color: "var(--text-muted)", display: "block" }}>Role</span>
+                    <strong style={{ fontSize: "13px", color: "var(--text-primary)" }}>{identity.role}</strong>
                   </div>
                   <div>
-                    <span style={{ fontSize: "11px", color: "#64748b", display: "block" }}>Ledger Status</span>
-                    <strong style={{ fontSize: "13px", color: "#34d399" }}>{identity.status || "ACTIVE"}</strong>
+                    <span style={{ fontSize: "11px", color: "var(--text-muted)", display: "block" }}>Ledger Status</span>
+                    <strong style={{ fontSize: "13px", color: "var(--success)" }}>{identity.status || "ACTIVE"}</strong>
                   </div>
                   <div>
-                    <span style={{ fontSize: "11px", color: "#64748b", display: "block" }}>Cryptographic Reference</span>
-                    <span style={{ fontSize: "12px", color: "#94a3b8", fontFamily: "monospace" }}>
+                    <span style={{ fontSize: "11px", color: "var(--text-muted)", display: "block" }}>Cryptographic Reference</span>
+                    <span style={{ fontSize: "12px", color: "var(--text-secondary)", fontFamily: "monospace" }}>
                       {identity.cryptographicReference || `fabric-ca::${identity.organization}MSP::${identity.identityId}`}
                     </span>
                   </div>
                 </div>
 
-                <p style={{ margin: 0, fontSize: "12px", color: "#64748b", lineHeight: "1.5" }}>
+                <p style={{ margin: 0, fontSize: "12px", color: "var(--text-muted)", lineHeight: "1.5" }}>
                   Decentralized Identifier used to represent this identity on the ChainCoder platform. It links your Fabric CA cryptographic membership to a verifiable on-chain identity record.
                 </p>
               </div>

@@ -94,22 +94,135 @@ export function getNotificationMeta(notification, user = null) {
         targetPath: "/identity",
       };
 
+    case "MINT_PROPOSAL_PENDING":
+      return {
+        icon: "⏳",
+        label: "Mint Proposal",
+        badgeClass: "badge-warning",
+        targetPath:
+          role === "Auditor" || role === "Admin" || role === "Manager"
+            ? "/approvals?tab=mint_proposals"
+            : "/assets",
+      };
+
+    case "MINT_APPROVED":
+      return {
+        icon: "✓",
+        label: "Mint Approved",
+        badgeClass: "badge-success",
+        targetPath: resourceId ? `/assets/${resourceId}` : "/assets",
+      };
+
+    case "MINT_REJECTED":
+      return {
+        icon: "✕",
+        label: "Mint Rejected",
+        badgeClass: "badge-danger",
+        targetPath:
+          role === "Auditor" || role === "Admin" || role === "Manager"
+            ? "/approvals?tab=mint_proposals"
+            : "/assets",
+      };
+
+    case "ASSET_DELETION_PENDING":
+      return {
+        icon: "🗑️",
+        label: "Deletion Proposal",
+        badgeClass: "badge-warning",
+        targetPath:
+          role === "Auditor" || role === "Admin" || role === "Manager"
+            ? "/approvals?tab=deletion_proposals"
+            : "/assets",
+      };
+
+    case "ASSET_DELETED":
+      return {
+        icon: "🗑️",
+        label: "Asset Deleted",
+        badgeClass: "badge-danger",
+        targetPath: "/assets",
+      };
+
+    case "ASSET_DELETION_REJECTED":
+      return {
+        icon: "✕",
+        label: "Deletion Rejected",
+        badgeClass: "badge-default",
+        targetPath:
+          role === "Auditor" || role === "Admin" || role === "Manager"
+            ? "/approvals?tab=deletion_proposals"
+            : "/assets",
+      };
+
+    case "REVOCATION_PROPOSAL_CREATED":
+      return {
+        icon: "⚠️",
+        label: "Revocation Proposed",
+        badgeClass: "badge-warning",
+        targetPath:
+          role === "Auditor" || role === "Admin" || role === "Manager"
+            ? "/approvals?tab=revocation_proposals"
+            : "/identities",
+      };
+
+    case "IDENTITY_REGISTERED":
+      return {
+        icon: "🆔",
+        label: "Identity Registered",
+        badgeClass: "badge-success",
+        targetPath: "/identities",
+      };
+
     default: {
-      // Fallback based on resourceType if known
+      // Fallback based on resourceType or content keyword matching
       let targetPath = null;
-      if (resourceType === "asset" && resourceId) {
+      const lowerTitle = (notification.title || "").toLowerCase();
+      const lowerMsg = (notification.message || "").toLowerCase();
+      const isApprover =
+        role === "Auditor" || role === "Admin" || role === "Manager";
+
+      if (
+        resourceType === "mint_proposal" ||
+        resourceType === "mintProposal" ||
+        lowerTitle.includes("mint proposal") ||
+        lowerMsg.includes("mint proposal")
+      ) {
+        targetPath = isApprover ? "/approvals?tab=mint_proposals" : "/assets";
+      } else if (
+        resourceType === "asset_deletion" ||
+        resourceType === "assetDeletion" ||
+        lowerTitle.includes("deletion") ||
+        lowerMsg.includes("deletion")
+      ) {
+        targetPath = isApprover ? "/approvals?tab=deletion_proposals" : "/assets";
+      } else if (
+        resourceType === "accessRequest" ||
+        lowerTitle.includes("access request") ||
+        lowerMsg.includes("access request")
+      ) {
+        targetPath = isApprover ? "/approvals" : "/access/requests";
+      } else if (resourceType === "asset" && resourceId) {
         targetPath = `/assets/${resourceId}`;
       } else if (resourceType === "asset") {
         targetPath = "/assets";
-      } else if (resourceType === "accessRequest") {
-        targetPath =
-          role === "Admin" || role === "Manager" || role === "Auditor"
-            ? "/approvals"
-            : "/access/requests";
       } else if (resourceType === "access") {
         targetPath = organization === "Contractor" ? "/assets" : "/access";
       } else if (resourceType === "identity") {
-        targetPath = "/identity";
+        targetPath = isApprover ? "/identities" : "/identity";
+      } else if (
+        lowerTitle.includes("co-approval") ||
+        lowerMsg.includes("co-approval") ||
+        lowerTitle.includes("co-approve") ||
+        lowerMsg.includes("co-approve") ||
+        lowerTitle.includes("approval") ||
+        lowerMsg.includes("approval required")
+      ) {
+        targetPath = isApprover ? "/approvals" : "/dashboard";
+      } else if (
+        isApprover &&
+        (lowerTitle.includes("queue") || lowerMsg.includes("queue"))
+      ) {
+        targetPath = "/approvals";
       }
 
       return {
